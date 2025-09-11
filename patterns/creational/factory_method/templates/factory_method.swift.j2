@@ -1,0 +1,384 @@
+{# factory_method.swift.j2 #}
+{% set creator_name = features.get("Creator Class Name", "Creator") %}
+{% set product_name = features.get("Product Interface Name", "Product") %}
+{% set factory_method_name = features.get("Factory Method Name", "createProduct") %}
+{% set num_products = features.get("Number of Products", 3) %}
+import Foundation
+
+// MARK: - Product Interface
+{% if features.get("Product Interface") %}
+{% if features.get("Protocol") %}
+protocol {{ product_name }} {
+    var name: String { get }
+    func operation(){% if features.get("Parameter Passing") %} -> String{% endif %}
+    {% if features.get("Parameter Passing") %}
+    func configureWith(_ parameters: [String: Any])
+    {% endif %}
+}
+{% elif features.get("Abstract Class") %}
+class {{ product_name }} {
+    let name: String
+    
+    init(name: String) {
+        self.name = name
+    }
+    
+    func operation(){% if features.get("Parameter Passing") %} -> String{% endif %} {
+        fatalError("Must be overridden by subclass")
+    }
+    
+    {% if features.get("Parameter Passing") %}
+    func configureWith(_ parameters: [String: Any]) {
+        // Default implementation - can be overridden
+    }
+    {% endif %}
+}
+{% elif features.get("Base Class") %}
+class {{ product_name }} {
+    let name: String
+    
+    init(name: String) {
+        self.name = name
+    }
+    
+    func operation(){% if features.get("Parameter Passing") %} -> String{% endif %} {
+        print("{{ product_name }}: \(name) performing operation")
+        {% if features.get("Parameter Passing") %}
+        return "Operation completed by \(name)"
+        {% endif %}
+    }
+    
+    {% if features.get("Parameter Passing") %}
+    func configureWith(_ parameters: [String: Any]) {
+        print("{{ product_name }}: \(name) configured with \(parameters)")
+    }
+    {% endif %}
+}
+{% endif %}
+{% endif %}
+
+// MARK: - Concrete Products
+{% for i in range(1, num_products + 1) %}
+class ConcreteProduct{{ i }}: {{ product_name }} {
+    {% if features.get("Protocol") %}
+    let name: String = "ConcreteProduct{{ i }}"
+    {% elif features.get("Abstract Class") or features.get("Base Class") %}
+    init() {
+        super.init(name: "ConcreteProduct{{ i }}")
+    }
+    {% endif %}
+    
+    {% if features.get("Protocol") or features.get("Abstract Class") %}{% else %}override {% endif %}func operation(){% if features.get("Parameter Passing") %} -> String{% endif %} {
+        print("ConcreteProduct{{ i }}: Executing specific operation {{ i }}")
+        {% if features.get("Parameter Passing") %}
+        return "ConcreteProduct{{ i }} operation result"
+        {% endif %}
+    }
+    
+    {% if features.get("Parameter Passing") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func configureWith(_ parameters: [String: Any]) {
+        {% if not features.get("Protocol") %}
+        super.configureWith(parameters)
+        {% endif %}
+        print("ConcreteProduct{{ i }}: Custom configuration applied")
+    }
+    {% endif %}
+}
+{% endfor %}
+
+{% if features.get("Generic Support") %}
+// MARK: - Product Type Enum
+enum ProductType: String, CaseIterable {
+    {% for i in range(1, num_products + 1) %}
+    case product{{ i }} = "product{{ i }}"
+    {% endfor %}
+}
+{% endif %}
+
+// MARK: - Creator
+{% if features.get("Abstract Creator") %}
+class {{ creator_name }} {
+    {% if features.get("Product Registration") %}
+    private static var productRegistry: [String: {{ product_name }}.Type] = [:]
+    
+    static func registerProduct(type: String, productClass: {{ product_name }}.Type) {
+        productRegistry[type] = productClass
+    }
+    
+    static func getRegisteredTypes() -> [String] {
+        return Array(productRegistry.keys)
+    }
+    {% endif %}
+    
+    // Factory Method - Abstract
+    {% if features.get("Abstract Method") %}
+    func {{ factory_method_name }}({% if features.get("Parameter Passing") %}type: String, parameters: [String: Any] = [:]{% endif %}){% if features.get("Error Handling") %} throws{% endif %} -> {{ product_name }} {
+        fatalError("Must be overridden by subclass")
+    }
+    {% elif features.get("Default Implementation") %}
+    func {{ factory_method_name }}({% if features.get("Parameter Passing") %}type: String = "default", parameters: [String: Any] = [:]{% endif %}){% if features.get("Error Handling") %} throws{% endif %} -> {{ product_name }} {
+        {% if features.get("Error Handling") %}
+        guard !type.isEmpty else {
+            throw FactoryError.invalidType("Product type cannot be empty")
+        }
+        {% endif %}
+        
+        {% if features.get("Generic Support") %}
+        if let productClass = {{ creator_name }}.productRegistry[type] {
+            let product = productClass.init()
+            {% if features.get("Parameter Passing") %}
+            product.configureWith(parameters)
+            {% endif %}
+            return product
+        }
+        {% endif %}
+        
+        // Default implementation
+        {% if features.get("Error Handling") %}
+        throw FactoryError.unknownType("Unknown product type: \(type)")
+        {% else %}
+        return ConcreteProduct1()
+        {% endif %}
+    }
+    {% endif %}
+    
+    // Template method that uses the factory method
+    func someOperation({% if features.get("Parameter Passing") %}type: String = "default", parameters: [String: Any] = [:]{% endif %}) {
+        {% if features.get("Error Handling") %}
+        do {
+            let product = try {{ factory_method_name }}({% if features.get("Parameter Passing") %}type: type, parameters: parameters{% endif %})
+            {% if features.get("Parameter Passing") %}
+            let result = product.operation()
+            print("{{ creator_name }}: Operation result - \(result)")
+            {% else %}
+            product.operation()
+            {% endif %}
+        } catch {
+            print("{{ creator_name }}: Error creating product - \(error)")
+        }
+        {% else %}
+        let product = {{ factory_method_name }}({% if features.get("Parameter Passing") %}type: type, parameters: parameters{% endif %})
+        {% if features.get("Parameter Passing") %}
+        let result = product.operation()
+        print("{{ creator_name }}: Operation result - \(result)")
+        {% else %}
+        product.operation()
+        {% endif %}
+        {% endif %}
+    }
+}
+
+{% elif features.get("Concrete Creator") %}
+class {{ creator_name }} {
+    {% if features.get("Lazy Loading") %}
+    private var productCache: [String: {{ product_name }}] = [:]
+    {% endif %}
+    
+    {% if features.get("Product Registration") %}
+    private var productRegistry: [String: () -> {{ product_name }}] = [:]
+    
+    init() {
+        setupProductRegistry()
+    }
+    
+    private func setupProductRegistry() {
+        {% for i in range(1, num_products + 1) %}
+        productRegistry["product{{ i }}"] = { ConcreteProduct{{ i }}() }
+        {% endfor %}
+    }
+    
+    func registerProduct(type: String, factory: @escaping () -> {{ product_name }}) {
+        productRegistry[type] = factory
+    }
+    {% endif %}
+    
+    // Factory Method - Concrete Implementation
+    func {{ factory_method_name }}({% if features.get("Parameter Passing") %}type: String = "product1", parameters: [String: Any] = [:]{% endif %}){% if features.get("Error Handling") %} throws{% endif %} -> {{ product_name }} {
+        {% if features.get("Lazy Loading") %}
+        let cacheKey = {% if features.get("Parameter Passing") %}type{% else %}"default"{% endif %}
+        if let cachedProduct = productCache[cacheKey] {
+            print("{{ creator_name }}: Returning cached product")
+            return cachedProduct
+        }
+        {% endif %}
+        
+        {% if features.get("Error Handling") %}
+        {% if features.get("Parameter Passing") %}
+        guard !type.isEmpty else {
+            throw FactoryError.invalidType("Product type cannot be empty")
+        }
+        {% endif %}
+        {% endif %}
+        
+        let product: {{ product_name }}
+        
+        {% if features.get("Product Registration") %}
+        {% if features.get("Parameter Passing") %}
+        if let factory = productRegistry[type] {
+            product = factory()
+        } else {
+            {% if features.get("Error Handling") %}
+            throw FactoryError.unknownType("Unknown product type: \(type)")
+            {% else %}
+            product = ConcreteProduct1()
+            {% endif %}
+        }
+        {% else %}
+        product = productRegistry.values.first?() ?? ConcreteProduct1()
+        {% endif %}
+        {% elif features.get("Parameter Passing") %}
+        switch type.lowercased() {
+        {% for i in range(1, num_products + 1) %}
+        case "product{{ i }}":
+            product = ConcreteProduct{{ i }}()
+        {% endfor %}
+        default:
+            {% if features.get("Error Handling") %}
+            throw FactoryError.unknownType("Unknown product type: \(type)")
+            {% else %}
+            product = ConcreteProduct1()
+            {% endif %}
+        }
+        {% else %}
+        // Default product creation
+        product = ConcreteProduct1()
+        {% endif %}
+        
+        {% if features.get("Parameter Passing") %}
+        product.configureWith(parameters)
+        {% endif %}
+        
+        {% if features.get("Lazy Loading") %}
+        productCache[cacheKey] = product
+        {% endif %}
+        
+        return product
+    }
+    
+    // Convenience method
+    func someOperation({% if features.get("Parameter Passing") %}type: String = "product1", parameters: [String: Any] = [:]{% endif %}) {
+        {% if features.get("Error Handling") %}
+        do {
+            let product = try {{ factory_method_name }}({% if features.get("Parameter Passing") %}type: type, parameters: parameters{% endif %})
+            {% if features.get("Parameter Passing") %}
+            let result = product.operation()
+            print("{{ creator_name }}: Operation result - \(result)")
+            {% else %}
+            product.operation()
+            {% endif %}
+        } catch {
+            print("{{ creator_name }}: Error creating product - \(error)")
+        }
+        {% else %}
+        let product = {{ factory_method_name }}({% if features.get("Parameter Passing") %}type: type, parameters: parameters{% endif %})
+        {% if features.get("Parameter Passing") %}
+        let result = product.operation()
+        print("{{ creator_name }}: Operation result - \(result)")
+        {% else %}
+        product.operation()
+        {% endif %}
+        {% endif %}
+    }
+}
+{% endif %}
+
+{% if features.get("Abstract Creator") %}
+// MARK: - Concrete Creators
+{% for i in range(1, min(3, num_products + 1)) %}
+class ConcreteCreator{{ i }}: {{ creator_name }} {
+    override func {{ factory_method_name }}({% if features.get("Parameter Passing") %}type: String, parameters: [String: Any] = [:]{% endif %}){% if features.get("Error Handling") %} throws{% endif %} -> {{ product_name }} {
+        let product = ConcreteProduct{{ i }}()
+        {% if features.get("Parameter Passing") %}
+        product.configureWith(parameters)
+        {% endif %}
+        print("ConcreteCreator{{ i }}: Created \(product.name)")
+        return product
+    }
+}
+{% endfor %}
+{% endif %}
+
+{% if features.get("Error Handling") %}
+// MARK: - Error Types
+enum FactoryError: Error, LocalizedError {
+    case invalidType(String)
+    case unknownType(String)
+    case creationFailed(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .invalidType(let message):
+            return "Invalid Type: \(message)"
+        case .unknownType(let message):
+            return "Unknown Type: \(message)"
+        case .creationFailed(let message):
+            return "Creation Failed: \(message)"
+        }
+    }
+}
+{% endif %}
+
+// MARK: - Usage Examples
+
+/*
+// Usage example:
+
+{% if features.get("Abstract Creator") %}
+// Using Abstract Creator
+let creator1 = ConcreteCreator1()
+let creator2 = ConcreteCreator2()
+
+{% if features.get("Parameter Passing") %}
+let params = ["color": "blue", "size": "large"]
+creator1.someOperation(type: "product1", parameters: params)
+creator2.someOperation(type: "product2", parameters: params)
+{% else %}
+creator1.someOperation()
+creator2.someOperation()
+{% endif %}
+
+{% elif features.get("Concrete Creator") %}
+// Using Concrete Creator
+let creator = {{ creator_name }}()
+
+{% if features.get("Parameter Passing") %}
+let params = ["version": "2.0", "mode": "advanced"]
+
+{% if features.get("Error Handling") %}
+do {
+    let product1 = try creator.{{ factory_method_name }}(type: "product1", parameters: params)
+    let result1 = product1.operation()
+    print("Result: \(result1)")
+    
+    let product2 = try creator.{{ factory_method_name }}(type: "product2", parameters: params)
+    let result2 = product2.operation()
+    print("Result: \(result2)")
+} catch {
+    print("Factory error: \(error)")
+}
+{% else %}
+let product1 = creator.{{ factory_method_name }}(type: "product1", parameters: params)
+let product2 = creator.{{ factory_method_name }}(type: "product2", parameters: params)
+product1.operation()
+product2.operation()
+{% endif %}
+
+{% else %}
+creator.someOperation()
+{% endif %}
+
+{% if features.get("Product Registration") %}
+// Product Registration Example
+creator.registerProduct(type: "custom") {
+    ConcreteProduct1()
+}
+{% endif %}
+
+{% if features.get("Lazy Loading") %}
+// Lazy Loading - subsequent calls will return cached instances
+let cached1 = creator.{{ factory_method_name }}(type: "product1")
+let cached2 = creator.{{ factory_method_name }}(type: "product1") // Same instance
+print("Same instance: \(cached1 === cached2)")
+{% endif %}
+{% endif %}
+*/

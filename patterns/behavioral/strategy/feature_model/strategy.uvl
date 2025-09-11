@@ -1,0 +1,31 @@
+features
+    "Strategy Pattern" {abstract}
+        mandatory
+            "Strategy Interface" {abstract}
+                alternative
+                    "Abstract Class"
+                    Interface
+                    Protocol
+            "Strategy Selection" {abstract}
+                alternative
+                    "Constructor Injection" 
+                    "Setter Method"
+                    "Factory Method"
+            "Context Behavior" {abstract}
+                alternative
+                    "Delegate to Strategy"
+                    "Template Method"
+        optional
+            "Strategy Validation"
+            "Default Strategy"
+            "Strategy Caching"
+            String "Context Class Name"
+            String "Strategy Interface Name"
+            Integer "Number of Strategies" cardinality [2..10]
+
+constraints
+    "Abstract Class" => !Protocol
+    Protocol => Interface
+    "Factory Method" => "Strategy Validation"
+    "Template Method" => "Abstract Class"
+    "Number of Strategies" > 1

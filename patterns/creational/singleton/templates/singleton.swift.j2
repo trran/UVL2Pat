@@ -1,0 +1,93 @@
+{# singleton.swift.j2 #}
+{% set class_name = features.get("Class Name", "Singleton") %}
+import Foundation
+{% if features.get("Thread Safety") and features.get("Lazy") %}
+import Dispatch
+{% endif %}
+
+class {{ class_name }} {
+    {% if features.get("Eager") %}
+    static let shared = {{ class_name }}()
+    {% elif features.get("Lazy") %}
+    {% if features.get("Thread Safety") %}
+    private static var _instance: {{ class_name }}?
+    private static let queue = DispatchQueue(label: "{{ class_name.lower() }}.queue")
+    {% else %}
+    private static var _instance: {{ class_name }}?
+    {% endif %}
+    {% endif %}
+    
+    private init() {
+        // Private initializer to prevent external instantiation
+        print("{{ class_name }} initialized")
+    }
+    
+    {% if features.get("Access Method") %}
+    {% if features.get("getInstance()") %}
+    {% if features.get("Eager") %}
+    static func getInstance() -> {{ class_name }} {
+        return shared
+    }
+    {% elif features.get("Lazy") %}
+    {% if features.get("Thread Safety") %}
+    static func getInstance() -> {{ class_name }} {
+        return queue.sync {
+            if _instance == nil {
+                _instance = {{ class_name }}()
+            }
+            return _instance!
+        }
+    }
+    {% else %}
+    static func getInstance() -> {{ class_name }} {
+        if _instance == nil {
+            _instance = {{ class_name }}()
+        }
+        return _instance!
+    }
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    
+    {% if features.get("Static Field") %}
+    {% if features.get("Eager") %}
+    static var instance: {{ class_name }} {
+        return shared
+    }
+    {% elif features.get("Lazy") %}
+    {% if features.get("Thread Safety") %}
+    static var instance: {{ class_name }} {
+        return queue.sync {
+            if _instance == nil {
+                _instance = {{ class_name }}()
+            }
+            return _instance!
+        }
+    }
+    {% else %}
+    static var instance: {{ class_name }} {
+        if _instance == nil {
+            _instance = {{ class_name }}()
+        }
+        return _instance!
+    }
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    
+    // MARK: - Public Methods
+    
+    func doSomething() {
+        print("{{ class_name }} is doing something...")
+    }
+    
+    func performTask(with data: String) -> String {
+        print("{{ class_name }} performing task with: \(data)")
+        return "Task completed by {{ class_name }}"
+    }
+    
+    func getStatus() -> String {
+        return "{{ class_name }} is active and ready"
+    }
+}

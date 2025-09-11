@@ -1,0 +1,206 @@
+{# adapter.swift.j2 #}
+{% set target_name = features.get("Target Interface Name", "Target") %}
+{% set adapter_name = features.get("Adapter Class Name", "Adapter") %}
+{% set adaptee_name = features.get("Adaptee Class Name", "Adaptee") %}
+{% set num_methods = features.get("Number of Methods", 2) %}
+import Foundation
+
+// MARK: - Target Interface
+{% if features.get("Target Interface") %}
+{% if features.get("Protocol") %}
+protocol {{ target_name }} {
+    {% for i in range(1, num_methods + 1) %}
+    func request{{ i }}(){% if features.get("Data Conversion") %} -> String{% endif %}
+    {% endfor %}
+    {% if features.get("Method Mapping") %}
+    func performAction(with data: String) -> Bool
+    {% endif %}
+}
+{% elif features.get("Abstract Class") %}
+class {{ target_name }} {
+    {% for i in range(1, num_methods + 1) %}
+    func request{{ i }}(){% if features.get("Data Conversion") %} -> String{% endif %} {
+        fatalError("Must be overridden by subclass")
+    }
+    {% endfor %}
+    {% if features.get("Method Mapping") %}
+    func performAction(with data: String) -> Bool {
+        fatalError("Must be overridden by subclass")
+    }
+    {% endif %}
+}
+{% endif %}
+{% endif %}
+
+// MARK: - Adaptee (Legacy Class)
+class {{ adaptee_name }} {
+    {% for i in range(1, num_methods + 1) %}
+    func specificRequest{{ i }}(){% if features.get("Data Conversion") %} -> Int{% endif %} {
+        print("{{ adaptee_name }}: Executing specific request {{ i }}")
+        {% if features.get("Data Conversion") %}
+        return {{ i * 100 }}
+        {% endif %}
+    }
+    {% endfor %}
+    
+    {% if features.get("Method Mapping") %}
+    func legacyOperation(input: Int) -> Int {
+        print("{{ adaptee_name }}: Legacy operation with input: \(input)")
+        return input * 2
+    }
+    {% endif %}
+    
+    func getAdapteeInfo() -> String {
+        return "{{ adaptee_name }} - Legacy implementation"
+    }
+}
+
+{% if features.get("Multiple Adaptees") %}
+// MARK: - Additional Adaptee
+class Additional{{ adaptee_name }} {
+    func alternativeRequest() -> Double {
+        print("Additional{{ adaptee_name }}: Alternative request")
+        return 3.14
+    }
+    
+    func auxiliaryOperation() -> String {
+        return "Auxiliary result from Additional{{ adaptee_name }}"
+    }
+}
+{% endif %}
+
+// MARK: - Adapter
+{% if features.get("Object Adapter") %}
+class {{ adapter_name }}: {% if features.get("Protocol") %}{{ target_name }}{% else %}{{ target_name }}{% endif %} {
+    private let adaptee: {{ adaptee_name }}
+    {% if features.get("Multiple Adaptees") %}
+    private let additionalAdaptee: Additional{{ adaptee_name }}?
+    {% endif %}
+    
+    init(adaptee: {{ adaptee_name }}{% if features.get("Multiple Adaptees") %}, additionalAdaptee: Additional{{ adaptee_name }}? = nil{% endif %}) {
+        self.adaptee = adaptee
+        {% if features.get("Multiple Adaptees") %}
+        self.additionalAdaptee = additionalAdaptee
+        {% endif %}
+    }
+    
+    {% for i in range(1, num_methods + 1) %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func request{{ i }}(){% if features.get("Data Conversion") %} -> String{% endif %} {
+        {% if features.get("Error Handling") %}
+        do {
+            {% if features.get("Data Conversion") %}
+            let result = adaptee.specificRequest{{ i }}()
+            return "Converted: \(result)"
+            {% else %}
+            adaptee.specificRequest{{ i }}()
+            {% endif %}
+        } catch {
+            {% if features.get("Data Conversion") %}
+            return "Error occurred"
+            {% else %}
+            print("Error in request{{ i }}: \(error)")
+            {% endif %}
+        }
+        {% else %}
+        {% if features.get("Data Conversion") %}
+        let result = adaptee.specificRequest{{ i }}()
+        return "Converted: \(result)"
+        {% else %}
+        adaptee.specificRequest{{ i }}()
+        {% endif %}
+        {% endif %}
+    }
+    {% endfor %}
+    
+    {% if features.get("Method Mapping") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func performAction(with data: String) -> Bool {
+        {% if features.get("Error Handling") %}
+        guard let intValue = Int(data) else {
+            print("{{ adapter_name }}: Invalid data format")
+            return false
+        }
+        {% else %}
+        let intValue = Int(data) ?? 0
+        {% endif %}
+        
+        let result = adaptee.legacyOperation(input: intValue)
+        print("{{ adapter_name }}: Mapped action result: \(result)")
+        
+        {% if features.get("Multiple Adaptees") %}
+        if let additional = additionalAdaptee {
+            let additionalResult = additional.alternativeRequest()
+            print("{{ adapter_name }}: Additional result: \(additionalResult)")
+        }
+        {% endif %}
+        
+        return result > 0
+    }
+    {% endif %}
+    
+    {% if features.get("Partial Implementation") %}
+    // Partial implementation - some methods may not be fully supported
+    private func isMethodSupported(_ methodName: String) -> Bool {
+        let supportedMethods = ["request1", "performAction"]
+        return supportedMethods.contains(methodName)
+    }
+    
+    private func handleUnsupportedMethod(_ methodName: String) {
+        {% if features.get("Error Handling") %}
+        print("Warning: Method \(methodName) is not fully supported in {{ adapter_name }}")
+        {% endif %}
+    }
+    {% endif %}
+}
+
+{% elif features.get("Class Adapter") %}
+// Note: Swift doesn't support multiple inheritance like C++
+// This simulates class adapter using protocol extension
+extension {{ adaptee_name }}: {{ target_name }} {
+    {% for i in range(1, num_methods + 1) %}
+    func request{{ i }}(){% if features.get("Data Conversion") %} -> String{% endif %} {
+        {% if features.get("Data Conversion") %}
+        let result = specificRequest{{ i }}()
+        return "Adapted: \(result)"
+        {% else %}
+        specificRequest{{ i }}()
+        {% endif %}
+    }
+    {% endfor %}
+    
+    {% if features.get("Method Mapping") %}
+    func performAction(with data: String) -> Bool {
+        let intValue = Int(data) ?? 0
+        let result = legacyOperation(input: intValue)
+        return result > 0
+    }
+    {% endif %}
+}
+
+// Class Adapter alias for cleaner usage
+typealias {{ adapter_name }} = {{ adaptee_name }}
+{% endif %}
+
+// MARK: - Usage Examples and Client Code
+class AdapterClient {
+    private let target: {{ target_name }}
+    
+    init(target: {{ target_name }}) {
+        self.target = target
+    }
+    
+    func executeRequests() {
+        {% for i in range(1, num_methods + 1) %}
+        {% if features.get("Data Conversion") %}
+        let result{{ i }} = target.request{{ i }}()
+        print("Client received: \(result{{ i }})")
+        {% else %}
+        target.request{{ i }}()
+        {% endif %}
+        {% endfor %}
+        
+        {% if features.get("Method Mapping") %}
+        let actionResult = target.performAction(with: "42")
+        print("Client: Action result = \(actionResult)")
+        {% endif %}
+    }
+}

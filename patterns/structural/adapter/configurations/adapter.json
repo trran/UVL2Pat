@@ -1,0 +1,14 @@
+{
+  "Object Adapter": true,
+  "Class Adapter": true,
+  "Protocol": true,
+  "Abstract Class": false,
+  "Method Mapping": true,
+  "Data Conversion": true,
+  "Error Handling": true,
+  "Multiple Adaptees": false,
+  "Target Interface Name": "MediaPlayer",
+  "Adapter Class Name": "AudioAdapter", 
+  "Adaptee Class Name": "LegacyAudioSystem",
+  "Number of Methods": 3
+}

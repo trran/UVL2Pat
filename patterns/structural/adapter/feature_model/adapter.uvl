@@ -1,0 +1,30 @@
+features
+    "Adapter Pattern" {abstract}
+        mandatory
+            "Adapter Type" {abstract}
+                alternative
+                    "Object Adapter"
+                    "Class Adapter"
+            "Target Interface" {abstract}
+                alternative
+                    Protocol
+                    "Abstract Class"
+            "Adapter Implementation" {abstract}
+                alternative
+                    "Full Implementation"
+                    "Partial Implementation"
+        optional
+            "Method Mapping"
+            "Data Conversion"
+            "Error Handling"
+            "Multiple Adaptees"
+            String "Target Interface Name"
+            String "Adapter Class Name"
+            String "Adaptee Class Name"
+            Integer "Number of Methods" cardinality [1..10]
+
+constraints
+    "Class Adapter" => "Abstract Class"
+    "Multiple Adaptees" => "Object Adapter"
+    "Partial Implementation" => "Error Handling"
+    "Number of Methods" > 0

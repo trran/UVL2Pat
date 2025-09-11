@@ -1,0 +1,32 @@
+features
+    "Factory Method Pattern" {abstract}
+        mandatory
+            "Creator Type" {abstract}
+                alternative
+                    "Abstract Creator" {Flexibility 3}
+                    "Concrete Creator" {Simplicity 2}
+            "Product Interface" {abstract}
+                alternative
+                    "Protocol"
+                    "Abstract Class"
+                    "Base Class" {Flexibility 2}
+            "Factory Method" {abstract}
+                alternative
+                    "Abstract Method"
+                    "Default Implementation" {Usability 2}
+        optional
+            "Product Registration" {Flexibility 3, Complexity 2}
+            "Parameter Passing" {Flexibility 2}
+            "Error Handling" {Reliability 2}
+            "Generic Support" {Flexibility 3, Complexity 2}
+            "Lazy Loading" {Performance 2}
+            String "Creator Class Name"
+            String "Product Interface Name"
+            String "Factory Method Name"
+            Integer "Number of Products" cardinality [2..10]
+
+constraints
+    "Abstract Method" => "Abstract Creator"
+    "Default Implementation" => "Concrete Creator"
+    "Product Registration" => "Generic Support"
+    "Number of Products" > 1

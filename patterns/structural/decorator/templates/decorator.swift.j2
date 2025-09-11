@@ -1,0 +1,391 @@
+{# swift_decorator.j2 #}
+{% set component_name = features.get("Component Interface Name", "Component") %}
+{% set decorator_base_name = features.get("Decorator Base Name", "Decorator") %}
+{% set concrete_component_name = features.get("Concrete Component Name", "ConcreteComponent") %}
+{% set num_decorators = features.get("Number of Decorators", 3) %}
+import Foundation
+
+// MARK: - Component Interface
+{% if features.get("Component Interface") %}
+{% if features.get("Protocol") %}
+protocol {{ component_name }} {
+    func operation() -> String
+    {% if features.get("State Management") %}
+    var state: [String: Any] { get set }
+    {% endif %}
+    {% if features.get("Method Chaining") %}
+    @discardableResult
+    func addDecorator(_ decorator: {{ decorator_base_name }}) -> {{ component_name }}
+    {% endif %}
+}
+{% elif features.get("Abstract Class") %}
+class {{ component_name }} {
+    {% if features.get("State Management") %}
+    var state: [String: Any] = [:]
+    {% endif %}
+    
+    func operation() -> String {
+        fatalError("Must be overridden by subclass")
+    }
+    
+    {% if features.get("Method Chaining") %}
+    @discardableResult
+    func addDecorator(_ decorator: {{ decorator_base_name }}) -> {{ component_name }} {
+        fatalError("Must be overridden by subclass")
+    }
+    {% endif %}
+}
+{% elif features.get("Base Class") %}
+class {{ component_name }} {
+    {% if features.get("State Management") %}
+    var state: [String: Any] = [:]
+    {% endif %}
+    
+    func operation() -> String {
+        {% if features.get("State Management") %}
+        state["lastOperation"] = Date()
+        {% endif %}
+        return "Base {{ component_name }} operation"
+    }
+    
+    {% if features.get("Method Chaining") %}
+    @discardableResult
+    func addDecorator(_ decorator: {{ decorator_base_name }}) -> {{ component_name }} {
+        decorator.setComponent(self)
+        return decorator
+    }
+    {% endif %}
+}
+{% endif %}
+{% endif %}
+
+// MARK: - Concrete Component
+class {{ concrete_component_name }}: {{ component_name }} {
+    {% if features.get("Protocol") %}
+    {% if features.get("State Management") %}
+    var state: [String: Any] = [:]
+    {% endif %}
+    {% endif %}
+    
+    {% if features.get("Protocol") or features.get("Abstract Class") %}{% else %}override {% endif %}func operation() -> String {
+        {% if features.get("State Management") %}
+        state["operationCount"] = (state["operationCount"] as? Int ?? 0) + 1
+        state["lastOperation"] = Date()
+        {% endif %}
+        return "{{ concrete_component_name }} core operation"
+    }
+    
+    {% if features.get("Method Chaining") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}@discardableResult
+    func addDecorator(_ decorator: {{ decorator_base_name }}) -> {{ component_name }} {
+        decorator.setComponent(self)
+        return decorator
+    }
+    {% endif %}
+}
+
+// MARK: - Decorator Base
+{% if features.get("Abstract Decorator") %}
+class {{ decorator_base_name }}: {{ component_name }} {
+    private var component: {{ component_name }}
+    {% if features.get("Protocol") %}
+    {% if features.get("State Management") %}
+    var state: [String: Any] = [:]
+    {% endif %}
+    {% endif %}
+    
+    init(component: {{ component_name }}) {
+        self.component = component
+        {% if features.get("State Management") %}
+        {% if not features.get("Protocol") %}
+        super.init()
+        {% endif %}
+        // Inherit state from wrapped component
+        if let componentState = component.state as? [String: Any] {
+            self.state = componentState
+        }
+        {% endif %}
+    }
+    
+    {% if features.get("Dynamic Addition") %}
+    func setComponent(_ component: {{ component_name }}) {
+        self.component = component
+    }
+    
+    func getComponent() -> {{ component_name }} {
+        return component
+    }
+    {% endif %}
+    
+    {% if features.get("Protocol") or features.get("Abstract Class") %}{% else %}override {% endif %}func operation() -> String {
+        {% if features.get("Around Operation") %}
+        let beforeResult = beforeOperation()
+        let coreResult = component.operation()
+        let afterResult = afterOperation()
+        return "\(beforeResult)\(coreResult)\(afterResult)"
+        {% elif features.get("Before Operation") %}
+        let beforeResult = beforeOperation()
+        let coreResult = component.operation()
+        return "\(beforeResult)\(coreResult)"
+        {% elif features.get("After Operation") %}
+        let coreResult = component.operation()
+        let afterResult = afterOperation()
+        return "\(coreResult)\(afterResult)"
+        {% else %}
+        return component.operation()
+        {% endif %}
+    }
+    
+    {% if features.get("Before Operation") or features.get("Around Operation") %}
+    func beforeOperation() -> String {
+        return "" // Override in subclasses
+    }
+    {% endif %}
+    
+    {% if features.get("After Operation") or features.get("Around Operation") %}
+    func afterOperation() -> String {
+        return "" // Override in subclasses
+    }
+    {% endif %}
+    
+    {% if features.get("Method Chaining") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}@discardableResult
+    func addDecorator(_ decorator: {{ decorator_base_name }}) -> {{ component_name }} {
+        decorator.setComponent(self)
+        return decorator
+    }
+    {% endif %}
+}
+
+{% elif features.get("Concrete Decorator Only") %}
+// Note: Using concrete decorators without abstract base
+{% endif %}
+
+{% if features.get("Multiple Decorators") %}
+// MARK: - Decorator Manager
+class DecoratorManager {
+    private var decorators: [{{ decorator_base_name }}] = []
+    
+    func addDecorator(_ decorator: {{ decorator_base_name }}) {
+        decorators.append(decorator)
+    }
+    
+    {% if features.get("Decorator Removal") %}
+    func removeDecorator(at index: Int) -> {{ decorator_base_name }}? {
+        guard index >= 0 && index < decorators.count else { return nil }
+        return decorators.remove(at: index)
+    }
+    
+    func removeAllDecorators() {
+        decorators.removeAll()
+    }
+    
+    func getDecoratorCount() -> Int {
+        return decorators.count
+    }
+    {% endif %}
+    
+    func applyDecorators(to component: {{ component_name }}) -> {{ component_name }} {
+        var result = component
+        for decorator in decorators {
+            decorator.setComponent(result)
+            result = decorator
+        }
+        return result
+    }
+}
+{% endif %}
+
+// MARK: - Concrete Decorators
+{% for i in range(1, num_decorators + 1) %}
+class ConcreteDecorator{{ i }}: {% if features.get("Abstract Decorator") %}{{ decorator_base_name }}{% else %}{{ component_name }}{% endif %} {
+    {% if features.get("Concrete Decorator Only") %}
+    private let component: {{ component_name }}
+    {% if features.get("Protocol") %}
+    {% if features.get("State Management") %}
+    var state: [String: Any] = [:]
+    {% endif %}
+    {% endif %}
+    
+    init(component: {{ component_name }}) {
+        self.component = component
+        {% if features.get("State Management") %}
+        // Inherit state from wrapped component
+        if let componentState = component.state as? [String: Any] {
+            self.state = componentState
+        }
+        {% endif %}
+    }
+    {% endif %}
+    
+    {% if features.get("State Management") %}
+    private var decoratorState: [String: Any] = [
+        "decoratorType": "ConcreteDecorator{{ i }}",
+        "creationTime": Date()
+    ]
+    {% endif %}
+    
+    {% if features.get("Abstract Decorator") %}
+    {% if features.get("Before Operation") or features.get("Around Operation") %}
+    override func beforeOperation() -> String {
+        {% if features.get("State Management") %}
+        decoratorState["beforeCalled"] = Date()
+        {% endif %}
+        return "[ConcreteDecorator{{ i }} Before] "
+    }
+    {% endif %}
+    
+    {% if features.get("After Operation") or features.get("Around Operation") %}
+    override func afterOperation() -> String {
+        {% if features.get("State Management") %}
+        decoratorState["afterCalled"] = Date()
+        {% endif %}
+        return " [ConcreteDecorator{{ i }} After]"
+    }
+    {% endif %}
+    
+    {% if not (features.get("Before Operation") or features.get("After Operation") or features.get("Around Operation")) %}
+    override func operation() -> String {
+        let result = super.operation()
+        {% if features.get("State Management") %}
+        decoratorState["operationCalled"] = Date()
+        {% endif %}
+        return "[ConcreteDecorator{{ i }}] \(result)"
+    }
+    {% endif %}
+    
+    {% elif features.get("Concrete Decorator Only") %}
+    func operation() -> String {
+        {% if features.get("Around Operation") %}
+        let beforeResult = "[ConcreteDecorator{{ i }} Before] "
+        let coreResult = component.operation()
+        let afterResult = " [ConcreteDecorator{{ i }} After]"
+        {% if features.get("State Management") %}
+        decoratorState["operationCalled"] = Date()
+        {% endif %}
+        return "\(beforeResult)\(coreResult)\(afterResult)"
+        {% elif features.get("Before Operation") %}
+        let beforeResult = "[ConcreteDecorator{{ i }} Before] "
+        let coreResult = component.operation()
+        {% if features.get("State Management") %}
+        decoratorState["operationCalled"] = Date()
+        {% endif %}
+        return "\(beforeResult)\(coreResult)"
+        {% elif features.get("After Operation") %}
+        let coreResult = component.operation()
+        let afterResult = " [ConcreteDecorator{{ i }} After]"
+        {% if features.get("State Management") %}
+        decoratorState["operationCalled"] = Date()
+        {% endif %}
+        return "\(coreResult)\(afterResult)"
+        {% else %}
+        let result = component.operation()
+        {% if features.get("State Management") %}
+        decoratorState["operationCalled"] = Date()
+        {% endif %}
+        return "[ConcreteDecorator{{ i }}] \(result)"
+        {% endif %}
+    }
+    
+    {% if features.get("Method Chaining") %}
+    @discardableResult
+    func addDecorator(_ decorator: {{ decorator_base_name }}) -> {{ component_name }} {
+        decorator.setComponent(self)
+        return decorator
+    }
+    {% endif %}
+    {% endif %}
+    
+    {% if features.get("State Management") %}
+    func getDecoratorState() -> [String: Any] {
+        return decoratorState
+    }
+    
+    func updateDecoratorState(key: String, value: Any) {
+        decoratorState[key] = value
+    }
+    {% endif %}
+}
+{% endfor %}
+
+{% if features.get("Method Chaining") %}
+// MARK: - Fluent Interface Extension
+extension {{ component_name }} {
+    {% for i in range(1, num_decorators + 1) %}
+    func with{{ i }}() -> {{ component_name }} {
+        return ConcreteDecorator{{ i }}(component: self)
+    }
+    {% endfor %}
+}
+{% endif %}
+
+// MARK: - Usage Examples
+
+/*
+// Usage example:
+
+// Create base component
+let component = {{ concrete_component_name }}()
+
+{% if features.get("Method Chaining") %}
+// Method chaining example
+let decoratedComponent = component
+    .with1()
+    .with2()
+    .with3()
+
+let result = decoratedComponent.operation()
+print("Chained result: \(result)")
+
+{% else %}
+// Manual decoration
+let decorator1 = ConcreteDecorator1(component: component)
+let decorator2 = ConcreteDecorator2(component: decorator1)
+let decorator3 = ConcreteDecorator3(component: decorator2)
+
+let result = decorator3.operation()
+print("Decorated result: \(result)")
+{% endif %}
+
+{% if features.get("Multiple Decorators") %}
+// Using Decorator Manager
+let manager = DecoratorManager()
+manager.addDecorator(ConcreteDecorator1(component: component))
+manager.addDecorator(ConcreteDecorator2(component: component))
+manager.addDecorator(ConcreteDecorator3(component: component))
+
+let managedDecorated = manager.applyDecorators(to: component)
+let managedResult = managedDecorated.operation()
+print("Managed result: \(managedResult)")
+
+{% if features.get("Decorator Removal") %}
+// Remove decorators
+print("Decorators before removal: \(manager.getDecoratorCount())")
+let removed = manager.removeDecorator(at: 0)
+print("Removed: \(removed != nil)")
+print("Decorators after removal: \(manager.getDecoratorCount())")
+{% endif %}
+{% endif %}
+
+{% if features.get("State Management") %}
+// State management example
+let statefulComponent = {{ concrete_component_name }}()
+let statefulDecorator = ConcreteDecorator1(component: statefulComponent)
+
+_ = statefulDecorator.operation()
+print("Component state: \(statefulComponent.state)")
+print("Decorator state: \(statefulDecorator.getDecoratorState())")
+{% endif %}
+
+{% if features.get("Dynamic Addition") %}
+// Dynamic decoration
+let baseComp = {{ concrete_component_name }}()
+let decorator = ConcreteDecorator1(component: baseComp)
+
+// Change the wrapped component at runtime
+let newComponent = {{ concrete_component_name }}()
+decorator.setComponent(newComponent)
+let dynamicResult = decorator.operation()
+print("Dynamic result: \(dynamicResult)")
+{% endif %}
+*/

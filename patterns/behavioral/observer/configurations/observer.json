@@ -1,0 +1,20 @@
+{
+  "Observer Pattern": true,
+  "Abstract Subject": false,
+  "Protocol Subject": true,
+  "Protocol": true,
+  "Abstract Class": false,
+  "Push Model": false,
+  "Pull Model": false,
+  "Hybrid Model": true,
+  "Observer Management": true,
+  "Async Notifications": true,
+  "Filtered Notifications": true,
+  "Observer Priority": false,
+  "Weak References": true,
+  "Event Types": true,
+  "Subject Name": "NewsPublisher",
+  "Observer Interface Name": "NewsObserver", 
+  "Concrete Observer Name": "NewsSubscriber",
+  "Number of Observers": 4
+}

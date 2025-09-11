@@ -1,0 +1,542 @@
+{# swift_observer.j2 #}
+{% set subject_name = features.get("Subject Name", "Subject") %}
+{% set observer_interface_name = features.get("Observer Interface Name", "Observer") %}
+{% set concrete_observer_name = features.get("Concrete Observer Name", "ConcreteObserver") %}
+{% set num_observers = features.get("Number of Observers", 3) %}
+import Foundation
+{% if features.get("Async Notifications") %}
+import Combine
+{% endif %}
+
+{% if features.get("Event Types") %}
+// MARK: - Event Types
+enum EventType: String, CaseIterable {
+    case created = "created"
+    case updated = "updated"
+    case deleted = "deleted"
+    case statusChanged = "statusChanged"
+    case dataReceived = "dataReceived"
+}
+
+struct NotificationEvent {
+    let type: EventType
+    let data: [String: Any]
+    let timestamp: Date
+    let source: String
+    
+    init(type: EventType, data: [String: Any] = [:], source: String) {
+        self.type = type
+        self.data = data
+        self.timestamp = Date()
+        self.source = source
+    }
+}
+{% endif %}
+
+// MARK: - Observer Interface
+{% if features.get("Observer Interface") %}
+{% if features.get("Protocol") %}
+protocol {{ observer_interface_name }}: AnyObject {
+    var observerID: String { get }
+    {% if features.get("Observer Priority") %}
+    var priority: Int { get }
+    {% endif %}
+    {% if features.get("Filtered Notifications") %}
+    var interestedEvents: [EventType] { get }
+    {% endif %}
+    
+    {% if features.get("Push Model") %}
+    func update(data: [String: Any])
+    {% elif features.get("Pull Model") %}
+    func update(subject: {{ subject_name }})
+    {% elif features.get("Hybrid Model") %}
+    func update(event: NotificationEvent?, subject: {{ subject_name }})
+    {% endif %}
+    
+    {% if features.get("Event Types") %}
+    func handleEvent(_ event: NotificationEvent)
+    {% endif %}
+}
+{% elif features.get("Abstract Class") %}
+class {{ observer_interface_name }} {
+    let observerID: String
+    {% if features.get("Observer Priority") %}
+    let priority: Int
+    {% endif %}
+    {% if features.get("Filtered Notifications") %}
+    let interestedEvents: [EventType]
+    {% endif %}
+    
+    init(observerID: String{% if features.get("Observer Priority") %}, priority: Int = 0{% endif %}{% if features.get("Filtered Notifications") %}, interestedEvents: [EventType] = EventType.allCases{% endif %}) {
+        self.observerID = observerID
+        {% if features.get("Observer Priority") %}
+        self.priority = priority
+        {% endif %}
+        {% if features.get("Filtered Notifications") %}
+        self.interestedEvents = interestedEvents
+        {% endif %}
+    }
+    
+    {% if features.get("Push Model") %}
+    func update(data: [String: Any]) {
+        fatalError("Must be overridden by subclass")
+    }
+    {% elif features.get("Pull Model") %}
+    func update(subject: {{ subject_name }}) {
+        fatalError("Must be overridden by subclass")
+    }
+    {% elif features.get("Hybrid Model") %}
+    func update(event: NotificationEvent?, subject: {{ subject_name }}) {
+        fatalError("Must be overridden by subclass")
+    }
+    {% endif %}
+    
+    {% if features.get("Event Types") %}
+    func handleEvent(_ event: NotificationEvent) {
+        fatalError("Must be overridden by subclass")
+    }
+    {% endif %}
+}
+{% endif %}
+{% endif %}
+
+// MARK: - Subject Interface/Implementation
+{% if features.get("Abstract Subject") %}
+class {{ subject_name }} {
+    {% if features.get("Weak References") %}
+    private var observers: [WeakObserverWrapper] = []
+    {% else %}
+    private var observers: [{{ observer_interface_name }}] = []
+    {% endif %}
+    {% if features.get("Observer Priority") %}
+    private var sortedObservers: [{{ observer_interface_name }}] = []
+    {% endif %}
+    {% if features.get("Async Notifications") %}
+    private let notificationQueue = DispatchQueue(label: "{{ subject_name.lower() }}.notifications", qos: .background)
+    {% endif %}
+    
+    {% if features.get("Observer Management") %}
+    func attach(_ observer: {{ observer_interface_name }}) {
+        {% if features.get("Weak References") %}
+        observers.append(WeakObserverWrapper(observer))
+        {% else %}
+        observers.append(observer)
+        {% endif %}
+        {% if features.get("Observer Priority") %}
+        updateSortedObservers()
+        {% endif %}
+        print("{{ subject_name }}: Observer \(observer.observerID) attached")
+    }
+    
+    func detach(_ observer: {{ observer_interface_name }}) {
+        {% if features.get("Weak References") %}
+        observers.removeAll { $0.observer?.observerID == observer.observerID }
+        {% else %}
+        observers.removeAll { $0.observerID == observer.observerID }
+        {% endif %}
+        {% if features.get("Observer Priority") %}
+        updateSortedObservers()
+        {% endif %}
+        print("{{ subject_name }}: Observer \(observer.observerID) detached")
+    }
+    
+    func detachAll() {
+        let count = observers.count
+        observers.removeAll()
+        {% if features.get("Observer Priority") %}
+        sortedObservers.removeAll()
+        {% endif %}
+        print("{{ subject_name }}: All \(count) observers detached")
+    }
+    
+    func getObserverCount() -> Int {
+        {% if features.get("Weak References") %}
+        cleanupWeakReferences()
+        {% endif %}
+        return observers.count
+    }
+    {% endif %}
+    
+    {% if features.get("Observer Priority") %}
+    private func updateSortedObservers() {
+        {% if features.get("Weak References") %}
+        sortedObservers = observers.compactMap { $0.observer }.sorted { $0.priority > $1.priority }
+        {% else %}
+        sortedObservers = observers.sorted { $0.priority > $1.priority }
+        {% endif %}
+    }
+    {% endif %}
+    
+    {% if features.get("Weak References") %}
+    private func cleanupWeakReferences() {
+        observers.removeAll { $0.observer == nil }
+    }
+    {% endif %}
+    
+    func notify({% if features.get("Push Model") %}data: [String: Any] = [:]{% elif features.get("Hybrid Model") %}event: NotificationEvent? = nil{% endif %}) {
+        {% if features.get("Weak References") %}
+        cleanupWeakReferences()
+        {% endif %}
+        
+        {% if features.get("Observer Priority") %}
+        let observersToNotify = sortedObservers
+        {% elif features.get("Weak References") %}
+        let observersToNotify = observers.compactMap { $0.observer }
+        {% else %}
+        let observersToNotify = observers
+        {% endif %}
+        
+        {% if features.get("Async Notifications") %}
+        notificationQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.performNotifications(to: observersToNotify{% if features.get("Push Model") %}, data: data{% elif features.get("Hybrid Model") %}, event: event{% endif %})
+        }
+        {% else %}
+        performNotifications(to: observersToNotify{% if features.get("Push Model") %}, data: data{% elif features.get("Hybrid Model") %}, event: event{% endif %})
+        {% endif %}
+    }
+    
+    private func performNotifications(to observers: [{{ observer_interface_name }}]{% if features.get("Push Model") %}, data: [String: Any]{% elif features.get("Hybrid Model") %}, event: NotificationEvent?{% endif %}) {
+        for observer in observers {
+            {% if features.get("Filtered Notifications") %}
+            if let event = event, !observer.interestedEvents.contains(event.type) {
+                continue
+            }
+            {% endif %}
+            
+            {% if features.get("Push Model") %}
+            observer.update(data: data)
+            {% elif features.get("Pull Model") %}
+            observer.update(subject: self)
+            {% elif features.get("Hybrid Model") %}
+            observer.update(event: event, subject: self)
+            {% endif %}
+            
+            {% if features.get("Event Types") %}
+            if let event = event {
+                observer.handleEvent(event)
+            }
+            {% endif %}
+        }
+    }
+}
+
+{% elif features.get("Protocol Subject") %}
+protocol {{ subject_name }}Protocol: AnyObject {
+    {% if features.get("Observer Management") %}
+    func attach(_ observer: {{ observer_interface_name }})
+    func detach(_ observer: {{ observer_interface_name }})
+    func detachAll()
+    func getObserverCount() -> Int
+    {% endif %}
+    
+    func notify({% if features.get("Push Model") %}data: [String: Any]{% elif features.get("Hybrid Model") %}event: NotificationEvent?{% endif %})
+}
+
+class {{ subject_name }}: {{ subject_name }}Protocol {
+    {% if features.get("Weak References") %}
+    private var observers: [WeakObserverWrapper] = []
+    {% else %}
+    private var observers: [{{ observer_interface_name }}] = []
+    {% endif %}
+    {% if features.get("Observer Priority") %}
+    private var sortedObservers: [{{ observer_interface_name }}] = []
+    {% endif %}
+    {% if features.get("Async Notifications") %}
+    private let notificationQueue = DispatchQueue(label: "{{ subject_name.lower() }}.notifications", qos: .background)
+    @Published var lastNotification: NotificationEvent?
+    {% endif %}
+    
+    {% if features.get("Observer Management") %}
+    func attach(_ observer: {{ observer_interface_name }}) {
+        {% if features.get("Weak References") %}
+        observers.append(WeakObserverWrapper(observer))
+        {% else %}
+        observers.append(observer)
+        {% endif %}
+        {% if features.get("Observer Priority") %}
+        updateSortedObservers()
+        {% endif %}
+        print("{{ subject_name }}: Observer \(observer.observerID) attached")
+    }
+    
+    func detach(_ observer: {{ observer_interface_name }}) {
+        {% if features.get("Weak References") %}
+        observers.removeAll { $0.observer?.observerID == observer.observerID }
+        {% else %}
+        observers.removeAll { $0.observerID == observer.observerID }
+        {% endif %}
+        {% if features.get("Observer Priority") %}
+        updateSortedObservers()
+        {% endif %}
+        print("{{ subject_name }}: Observer \(observer.observerID) detached")
+    }
+    
+    func detachAll() {
+        let count = observers.count
+        observers.removeAll()
+        {% if features.get("Observer Priority") %}
+        sortedObservers.removeAll()
+        {% endif %}
+        print("{{ subject_name }}: All \(count) observers detached")
+    }
+    
+    func getObserverCount() -> Int {
+        {% if features.get("Weak References") %}
+        cleanupWeakReferences()
+        {% endif %}
+        return observers.count
+    }
+    {% endif %}
+    
+    {% if features.get("Observer Priority") %}
+    private func updateSortedObservers() {
+        {% if features.get("Weak References") %}
+        sortedObservers = observers.compactMap { $0.observer }.sorted { $0.priority > $1.priority }
+        {% else %}
+        sortedObservers = observers.sorted { $0.priority > $1.priority }
+        {% endif %}
+    }
+    {% endif %}
+    
+    {% if features.get("Weak References") %}
+    private func cleanupWeakReferences() {
+        observers.removeAll { $0.observer == nil }
+    }
+    {% endif %}
+    
+    func notify({% if features.get("Push Model") %}data: [String: Any] = [:]{% elif features.get("Hybrid Model") %}event: NotificationEvent? = nil{% endif %}) {
+        {% if features.get("Weak References") %}
+        cleanupWeakReferences()
+        {% endif %}
+        
+        {% if features.get("Observer Priority") %}
+        let observersToNotify = sortedObservers
+        {% elif features.get("Weak References") %}
+        let observersToNotify = observers.compactMap { $0.observer }
+        {% else %}
+        let observersToNotify = observers
+        {% endif %}
+        
+        {% if features.get("Async Notifications") %}
+        if let event = event {
+            lastNotification = event
+        }
+        
+        notificationQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.performNotifications(to: observersToNotify{% if features.get("Push Model") %}, data: data{% elif features.get("Hybrid Model") %}, event: event{% endif %})
+        }
+        {% else %}
+        performNotifications(to: observersToNotify{% if features.get("Push Model") %}, data: data{% elif features.get("Hybrid Model") %}, event: event{% endif %})
+        {% endif %}
+    }
+    
+    private func performNotifications(to observers: [{{ observer_interface_name }}]{% if features.get("Push Model") %}, data: [String: Any]{% elif features.get("Hybrid Model") %}, event: NotificationEvent?{% endif %}) {
+        for observer in observers {
+            {% if features.get("Filtered Notifications") %}
+            if let event = event, !observer.interestedEvents.contains(event.type) {
+                continue
+            }
+            {% endif %}
+            
+            {% if features.get("Push Model") %}
+            observer.update(data: data)
+            {% elif features.get("Pull Model") %}
+            observer.update(subject: self)
+            {% elif features.get("Hybrid Model") %}
+            observer.update(event: event, subject: self)
+            {% endif %}
+            
+            {% if features.get("Event Types") %}
+            if let event = event {
+                observer.handleEvent(event)
+            }
+            {% endif %}
+        }
+    }
+}
+{% endif %}
+
+{% if features.get("Weak References") %}
+// MARK: - Weak Reference Wrapper
+class WeakObserverWrapper {
+    weak var observer: {{ observer_interface_name }}?
+    
+    init(_ observer: {{ observer_interface_name }}) {
+        self.observer = observer
+    }
+}
+{% endif %}
+
+// MARK: - Concrete Observers
+{% for i in range(1, num_observers + 1) %}
+class {{ concrete_observer_name }}{{ i }}: {{ observer_interface_name }} {
+    {% if features.get("Protocol") %}
+    let observerID: String
+    {% if features.get("Observer Priority") %}
+    let priority: Int
+    {% endif %}
+    {% if features.get("Filtered Notifications") %}
+    let interestedEvents: [EventType]
+    {% endif %}
+    
+    init(observerID: String = "{{ concrete_observer_name }}{{ i }}"{% if features.get("Observer Priority") %}, priority: Int = {{ i }}{% endif %}{% if features.get("Filtered Notifications") %}, interestedEvents: [EventType] = [.updated, .created]{% endif %}) {
+        self.observerID = observerID
+        {% if features.get("Observer Priority") %}
+        self.priority = priority
+        {% endif %}
+        {% if features.get("Filtered Notifications") %}
+        self.interestedEvents = interestedEvents
+        {% endif %}
+    }
+    {% elif features.get("Abstract Class") %}
+    init(observerID: String = "{{ concrete_observer_name }}{{ i }}"{% if features.get("Observer Priority") %}, priority: Int = {{ i }}{% endif %}{% if features.get("Filtered Notifications") %}, interestedEvents: [EventType] = [.updated, .created]{% endif %}) {
+        super.init(observerID: observerID{% if features.get("Observer Priority") %}, priority: priority{% endif %}{% if features.get("Filtered Notifications") %}, interestedEvents: interestedEvents{% endif %})
+    }
+    {% endif %}
+    
+    {% if features.get("Push Model") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func update(data: [String: Any]) {
+        print("{{ concrete_observer_name }}{{ i }} (\(observerID)): Received push data - \(data)")
+    }
+    {% elif features.get("Pull Model") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func update(subject: {{ subject_name }}) {
+        print("{{ concrete_observer_name }}{{ i }} (\(observerID)): Pulling data from subject")
+        // Pull specific data from subject as needed
+    }
+    {% elif features.get("Hybrid Model") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func update(event: NotificationEvent?, subject: {{ subject_name }}) {
+        if let event = event {
+            print("{{ concrete_observer_name }}{{ i }} (\(observerID)): Hybrid update - Event: \(event.type.rawValue)")
+        } else {
+            print("{{ concrete_observer_name }}{{ i }} (\(observerID)): Hybrid update - No event, pulling from subject")
+        }
+    }
+    {% endif %}
+    
+    {% if features.get("Event Types") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func handleEvent(_ event: NotificationEvent) {
+        print("{{ concrete_observer_name }}{{ i }} (\(observerID)): Handling \(event.type.rawValue) event at \(event.timestamp)")
+        
+        switch event.type {
+        case .created:
+            handleCreated(event)
+        case .updated:
+            handleUpdated(event)
+        case .deleted:
+            handleDeleted(event)
+        case .statusChanged:
+            handleStatusChanged(event)
+        case .dataReceived:
+            handleDataReceived(event)
+        }
+    }
+    
+    private func handleCreated(_ event: NotificationEvent) {
+        print("{{ concrete_observer_name }}{{ i }}: Processing creation event")
+    }
+    
+    private func handleUpdated(_ event: NotificationEvent) {
+        print("{{ concrete_observer_name }}{{ i }}: Processing update event")
+    }
+    
+    private func handleDeleted(_ event: NotificationEvent) {
+        print("{{ concrete_observer_name }}{{ i }}: Processing deletion event")
+    }
+    
+    private func handleStatusChanged(_ event: NotificationEvent) {
+        print("{{ concrete_observer_name }}{{ i }}: Processing status change event")
+    }
+    
+    private func handleDataReceived(_ event: NotificationEvent) {
+        print("{{ concrete_observer_name }}{{ i }}: Processing data received event")
+    }
+    {% endif %}
+}
+{% endfor %}
+
+// MARK: - Usage Examples
+// Create subject
+let newsPublisher = {{ subject_name }}()
+
+// Create observers
+{% set max_demo_observers = 4 if num_observers > 4 else num_observers %}
+{% for i in range(1, max_demo_observers + 1) %}
+let subscriber{{ i }} = {{ concrete_observer_name }}{{ i }}(observerID: "Subscriber{{ i }}"{% if features.get("Filtered Notifications") %}, interestedEvents: [{% if i == 1 %}.created, .updated{% elif i == 2 %}.updated, .deleted{% elif i == 3 %}.statusChanged{% else %}.dataReceived{% endif %}]{% endif %})
+{% endfor %}
+
+{% if features.get("Observer Management") %}
+// Attach observers
+{% for i in range(1, max_demo_observers + 1) %}
+newsPublisher.attach(subscriber{{ i }})
+{% endfor %}
+
+print("Total observers: \(newsPublisher.getObserverCount())")
+{% endif %}
+
+{% if features.get("Event Types") %}
+// Create and send events
+let createdEvent = NotificationEvent(type: .created, data: ["articleId": "123", "title": "Breaking News"], source: "{{ subject_name }}")
+let updatedEvent = NotificationEvent(type: .updated, data: ["articleId": "123", "changes": ["title", "content"]], source: "{{ subject_name }}")
+
+{% if features.get("Hybrid Model") %}
+newsPublisher.notify(event: createdEvent)
+newsPublisher.notify(event: updatedEvent)
+{% elif features.get("Push Model") %}
+newsPublisher.notify(data: createdEvent.data)
+newsPublisher.notify(data: updatedEvent.data)
+{% elif features.get("Pull Model") %}
+newsPublisher.notify()
+{% endif %}
+
+{% else %}
+// Send notifications
+{% if features.get("Hybrid Model") %}
+newsPublisher.notify(event: nil)
+{% elif features.get("Push Model") %}
+newsPublisher.notify(data: ["message": "General update", "timestamp": Date()])
+{% elif features.get("Pull Model") %}
+newsPublisher.notify()
+{% endif %}
+{% endif %}
+
+{% if features.get("Observer Management") %}
+// Detach specific observer
+newsPublisher.detach(subscriber2)
+print("Observers after detaching subscriber2: \(newsPublisher.getObserverCount())")
+
+// Send another notification
+{% if features.get("Event Types") %}
+let statusEvent = NotificationEvent(type: .statusChanged, data: ["status": "maintenance"], source: "{{ subject_name }}")
+{% if features.get("Hybrid Model") %}
+newsPublisher.notify(event: statusEvent)
+{% endif %}
+{% else %}
+{% if features.get("Push Model") %}
+newsPublisher.notify(data: ["status": "maintenance"])
+{% elif features.get("Pull Model") %}
+newsPublisher.notify()
+{% endif %}
+{% endif %}
+
+// Detach all observers
+newsPublisher.detachAll()
+{% endif %}
+
+{% if features.get("Async Notifications") %}
+// Async notifications example
+print("Sending async notification...")
+{% if features.get("Event Types") %}
+let asyncEvent = NotificationEvent(type: .dataReceived, data: ["payload": "async data"], source: "{{ subject_name }}")
+newsPublisher.notify(event: asyncEvent)
+{% elif features.get("Push Model") %}
+newsPublisher.notify(data: ["async": true, "payload": "async data"])
+{% endif %}
+
+// Give time for async notification to complete
+DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+    print("Async notification completed")
+}
+{% endif %}
+*/

@@ -1,0 +1,32 @@
+features
+    "Bridge Pattern" {abstract}
+        mandatory
+            "Abstraction Type" {abstract}
+                alternative
+                    "Abstract Class"
+                    "Protocol Based"
+            "Implementation Interface"
+                alternative
+                    Protocol
+                    "Implementation Class"
+            "Bridge Connection" {abstract}
+                alternative
+                    "Constructor Injection"
+                    "Property Setting"
+                    "Factory Creation"
+        optional
+            "Multiple Implementations"
+            "Implementation Switching"
+            "Bridge Validation"
+            "Lazy Implementation"
+            "Implementation Caching"
+            String "Abstraction Name"
+            String "Implementation Interface Name"
+            String "Refined Abstraction Name"
+            Integer "Number of Implementations"
+
+constraints
+    "Implementation Switching" => "Property Setting"
+    "Implementation Caching" => "Multiple Implementations"
+    "Lazy Implementation" => "Property Setting"
+    "Number of Implementations" > 1

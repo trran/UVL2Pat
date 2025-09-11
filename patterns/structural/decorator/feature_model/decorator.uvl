@@ -1,0 +1,33 @@
+features
+    "Decorator Pattern" {abstract}
+        mandatory
+            "Component Interface" {abstract}
+                alternative
+                    Protocol
+                    "Abstract Class"
+                    "Base Class"
+            "Decorator Base" {abstract}
+                alternative
+                    "Abstract Decorator"
+                    "Concrete Decorator Only"
+            "Decoration Behavior" {abstract}
+                alternative
+                    "Before Operation"
+                    "After Operation"
+                    "Around Operation"
+        optional
+            "Method Chaining"
+            "State Management"
+            "Multiple Decorators"
+            "Dynamic Addition"
+            "Decorator Removal"
+            String "Component Interface Name"
+            String "Decorator Base Name"
+            String "Concrete Component Name"
+            Integer "Number of Decorators" cardinality [1..8]
+
+constraints
+    "Concrete Decorator Only" => !"Abstract Decorator"
+    "Decorator Removal" => "State Management"
+    "Method Chaining" => "Dynamic Addition"
+    "Number of Decorators" > 0

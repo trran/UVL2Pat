@@ -1,0 +1,33 @@
+features
+    "Observer Pattern" {abstract}
+        mandatory
+            "Subject Type" {abstract}
+                alternative
+                    "Abstract Subject"
+                    "Protocol Subject"
+            "Observer Interface" {abstract}
+                alternative
+                    Protocol
+                    "Abstract Class"
+            "Notification Method" {abstract}
+                alternative
+                    "Push Model"
+                    "Pull Model"
+                    "Hybrid Model"
+        optional
+            "Observer Management"
+            "Async Notifications"
+            "Filtered Notifications" 
+            "Observer Priority"
+            "Weak References"
+            "Event Types"
+            String "Subject Name"
+            String "Observer Interface Name"
+            String "Concrete Observer Name"
+            Integer "Number of Observers" cardinality [1..10]
+ 
+constraints
+    "Observer Priority" => "Observer Management"
+    "Filtered Notifications" => "Event Types"
+    "Async Notifications" => "Protocol Subject"
+    "Number of Observers" > 0

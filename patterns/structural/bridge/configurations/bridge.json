@@ -1,0 +1,19 @@
+{
+  "Bridge Pattern": true,
+  "Abstract Class": true,
+  "Protocol Based": false,
+  "Protocol": true,
+  "Implementation Class": false,
+  "Constructor Injection": false,
+  "Property Setting": true,
+  "Factory Creation": false,
+  "Multiple Implementations": true,
+  "Implementation Switching": true,
+  "Bridge Validation": true,
+  "Lazy Implementation": false,
+  "Implementation Caching": true,
+  "Abstraction Name": "RemoteControl",
+  "Implementation Interface Name": "Device",
+  "Refined Abstraction Name": "AdvancedRemoteControl",
+  "Number of Implementations": 3
+}

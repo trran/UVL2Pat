@@ -1,0 +1,17 @@
+{
+  "Concrete Creator": true,
+  "Abstract Creator": false,
+  "Protocol": true,
+  "Abstract Class": false,
+  "Default Implementation": true,
+  "Abstract Method": false,
+  "Product Registration": true,
+  "Parameter Passing": true,
+  "Error Handling": true,
+  "Generic Support": true,
+  "Lazy Loading": false,
+  "Creator Class Name": "DocumentFactory",
+  "Product Interface Name": "Document",
+  "Factory Method Name": "createDocument",
+  "Number of Products": 4
+}

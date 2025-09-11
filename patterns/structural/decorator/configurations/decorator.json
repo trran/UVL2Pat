@@ -1,0 +1,17 @@
+{
+  "Protocol": true,
+  "Abstract Class": false,
+  "Abstract Decorator": true,
+  "Concrete Decorator Only": false,
+  "Around Operation": true,
+  "Before Operation": false,
+  "Method Chaining": true,
+  "State Management": true,
+  "Multiple Decorators": true,
+  "Dynamic Addition": true,
+  "Decorator Removal": false,
+  "Component Interface Name": "Coffee",
+  "Decorator Base Name": "CoffeeDecorator",
+  "Concrete Component Name": "SimpleCoffee",
+  "Number of Decorators": 4
+}

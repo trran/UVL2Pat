@@ -1,0 +1,513 @@
+{# bridge.swift.j2 #}
+{% set abstraction_name = features.get("Abstraction Name", "Abstraction") %}
+{% set implementation_name = features.get("Implementation Interface Name", "Implementation") %}
+{% set refined_abstraction_name = features.get("Refined Abstraction Name", "RefinedAbstraction") %}
+{% set num_implementations = features.get("Number of Implementations", 3) %}
+import Foundation
+
+// MARK: - Implementation Interface
+{% if features.get("Implementation Interface") %}
+{% if features.get("Protocol") %}
+protocol {{ implementation_name }} {
+    var name: String { get }
+    func operationImpl() -> String
+    {% if features.get("Multiple Implementations") %}
+    func specificOperation(data: String) -> String
+    func getCapabilities() -> [String]
+    {% endif %}
+    {% if features.get("Bridge Validation") %}
+    func validate() -> Bool
+    {% endif %}
+}
+{% elif features.get("Implementation Class") %}
+class {{ implementation_name }} {
+    let name: String
+    
+    init(name: String) {
+        self.name = name
+    }
+    
+    func operationImpl() -> String {
+        fatalError("Must be overridden by subclass")
+    }
+    
+    {% if features.get("Multiple Implementations") %}
+    func specificOperation(data: String) -> String {
+        fatalError("Must be overridden by subclass")
+    }
+    
+    func getCapabilities() -> [String] {
+        return []
+    }
+    {% endif %}
+    
+    {% if features.get("Bridge Validation") %}
+    func validate() -> Bool {
+        return true
+    }
+    {% endif %}
+}
+{% endif %}
+{% endif %}
+
+// MARK: - Concrete Implementations
+{% for i in range(1, num_implementations + 1) %}
+class ConcreteImplementation{{ i }}: {{ implementation_name }} {
+    {% if features.get("Protocol") %}
+    let name: String = "ConcreteImplementation{{ i }}"
+    {% elif features.get("Implementation Class") %}
+    init() {
+        super.init(name: "ConcreteImplementation{{ i }}")
+    }
+    {% endif %}
+    
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func operationImpl() -> String {
+        return "ConcreteImplementation{{ i }}: Core operation executed"
+    }
+    
+    {% if features.get("Multiple Implementations") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func specificOperation(data: String) -> String {
+        return "ConcreteImplementation{{ i }}: Processed '\(data)' with method {{ i }}"
+    }
+    
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func getCapabilities() -> [String] {
+        return ["capability{{ i }}A", "capability{{ i }}B", "shared"]
+    }
+    {% endif %}
+    
+    {% if features.get("Bridge Validation") %}
+    {% if features.get("Protocol") %}{% else %}override {% endif %}func validate() -> Bool {
+        // Implementation-specific validation
+        print("ConcreteImplementation{{ i }}: Validation passed")
+        return true
+    }
+    {% endif %}
+    
+    // Implementation-specific method
+    func implementation{{ i }}SpecificMethod() -> String {
+        return "ConcreteImplementation{{ i }}: Specific functionality"
+    }
+}
+{% endfor %}
+
+// MARK: - Abstraction
+{% if features.get("Abstract Class") %}
+class {{ abstraction_name }} {
+    {% if features.get("Constructor Injection") %}
+    protected let implementation: {{ implementation_name }}
+    
+    init(implementation: {{ implementation_name }}) {
+        {% if features.get("Bridge Validation") %}
+        guard implementation.validate() else {
+            fatalError("Invalid implementation provided")
+        }
+        {% endif %}
+        self.implementation = implementation
+    }
+    {% elif features.get("Property Setting") %}
+    {% if features.get("Lazy Implementation") %}
+    private var _implementation: {{ implementation_name }}?
+    protected var implementation: {{ implementation_name }} {
+        get {
+            if let impl = _implementation {
+                return impl
+            } else {
+                fatalError("Implementation not set")
+            }
+        }
+        set {
+            {% if features.get("Bridge Validation") %}
+            guard newValue.validate() else {
+                print("Warning: Invalid implementation, keeping current one")
+                return
+            }
+            {% endif %}
+            _implementation = newValue
+        }
+    }
+    
+    init() {
+        // Lazy initialization - implementation will be set later
+    }
+    {% else %}
+    protected var implementation: {{ implementation_name }}
+    
+    init(implementation: {{ implementation_name }}) {
+        {% if features.get("Bridge Validation") %}
+        guard implementation.validate() else {
+            fatalError("Invalid implementation provided")
+        }
+        {% endif %}
+        self.implementation = implementation
+    }
+    {% endif %}
+    {% elif features.get("Factory Creation") %}
+    protected let implementation: {{ implementation_name }}
+    
+    init(implementationType: String) {
+        self.implementation = {{ abstraction_name }}.createImplementation(type: implementationType)
+        {% if features.get("Bridge Validation") %}
+        guard implementation.validate() else {
+            fatalError("Created implementation failed validation")
+        }
+        {% endif %}
+    }
+    
+    private static func createImplementation(type: String) -> {{ implementation_name }} {
+        switch type.lowercased() {
+        {% for i in range(1, num_implementations + 1) %}
+        case "impl{{ i }}", "implementation{{ i }}":
+            return ConcreteImplementation{{ i }}()
+        {% endfor %}
+        default:
+            return ConcreteImplementation1() // Default implementation
+        }
+    }
+    {% endif %}
+    
+    {% if features.get("Implementation Caching") %}
+    private static var implementationCache: [String: {{ implementation_name }}] = [:]
+    
+    static func getCachedImplementation(type: String) -> {{ implementation_name }}? {
+        return implementationCache[type]
+    }
+    
+    static func cacheImplementation(_ implementation: {{ implementation_name }}, forType type: String) {
+        implementationCache[type] = implementation
+    }
+    {% endif %}
+    
+    func operation() -> String {
+        let result = implementation.operationImpl()
+        return "{{ abstraction_name }}: \(result)"
+    }
+    
+    {% if features.get("Multiple Implementations") %}
+    func complexOperation(with data: String) -> String {
+        let specificResult = implementation.specificOperation(data: data)
+        let capabilities = implementation.getCapabilities()
+        return "{{ abstraction_name }}: \(specificResult) | Capabilities: \(capabilities.joined(separator: ", "))"
+    }
+    {% endif %}
+    
+    {% if features.get("Implementation Switching") %}
+    func switchImplementation(to newImplementation: {{ implementation_name }}) {
+        {% if features.get("Bridge Validation") %}
+        guard newImplementation.validate() else {
+            print("Cannot switch to invalid implementation")
+            return
+        }
+        {% endif %}
+        
+        print("{{ abstraction_name }}: Switching from \(implementation.name) to \(newImplementation.name)")
+        implementation = newImplementation
+        
+        {% if features.get("Implementation Caching") %}
+        {{ abstraction_name }}.cacheImplementation(implementation, forType: implementation.name)
+        {% endif %}
+    }
+    
+    func getCurrentImplementation() -> {{ implementation_name }} {
+        return implementation
+    }
+    {% endif %}
+}
+
+{% elif features.get("Protocol Based") %}
+protocol {{ abstraction_name }} {
+    var implementation: {{ implementation_name }} { get {% if features.get("Implementation Switching") %}set{% endif %} }
+    
+    func operation() -> String
+    {% if features.get("Multiple Implementations") %}
+    func complexOperation(with data: String) -> String
+    {% endif %}
+}
+
+// Default implementation via extension
+extension {{ abstraction_name }} {
+    func operation() -> String {
+        let result = implementation.operationImpl()
+        return "{{ abstraction_name }}: \(result)"
+    }
+    
+    {% if features.get("Multiple Implementations") %}
+    func complexOperation(with data: String) -> String {
+        let specificResult = implementation.specificOperation(data: data)
+        let capabilities = implementation.getCapabilities()
+        return "{{ abstraction_name }}: \(specificResult) | Capabilities: \(capabilities.joined(separator: ", "))"
+    }
+    {% endif %}
+}
+{% endif %}
+
+// MARK: - Refined Abstractions
+{% if features.get("Abstract Class") %}
+class {{ refined_abstraction_name }}: {{ abstraction_name }} {
+    private var additionalState: [String: Any] = [:]
+    
+    {% if features.get("Constructor Injection") %}
+    override init(implementation: {{ implementation_name }}) {
+        super.init(implementation: implementation)
+        setupRefinedBehavior()
+    }
+    {% elif features.get("Property Setting") %}
+    override init(implementation: {{ implementation_name }}) {
+        super.init(implementation: implementation)
+        setupRefinedBehavior()
+    }
+    
+    {% if features.get("Lazy Implementation") %}
+    override init() {
+        super.init()
+        setupRefinedBehavior()
+    }
+    {% endif %}
+    {% elif features.get("Factory Creation") %}
+    override init(implementationType: String) {
+        super.init(implementationType: implementationType)
+        setupRefinedBehavior()
+    }
+    {% endif %}
+    
+    private func setupRefinedBehavior() {
+        additionalState["created"] = Date()
+        additionalState["refinedType"] = "{{ refined_abstraction_name }}"
+    }
+    
+    override func operation() -> String {
+        let baseResult = super.operation()
+        let refinedBehavior = performRefinedBehavior()
+        return "\(baseResult) + {{ refined_abstraction_name }}: \(refinedBehavior)"
+    }
+    
+    {% if features.get("Multiple Implementations") %}
+    override func complexOperation(with data: String) -> String {
+        let baseResult = super.complexOperation(with: data)
+        let refinedProcessing = processDataWithRefinement(data)
+        return "\(baseResult) + {{ refined_abstraction_name }}: \(refinedProcessing)"
+    }
+    
+    private func processDataWithRefinement(_ data: String) -> String {
+        additionalState["lastProcessedData"] = data
+        return "Refined processing of '\(data)'"
+    }
+    {% endif %}
+    
+    private func performRefinedBehavior() -> String {
+        let count = (additionalState["operationCount"] as? Int ?? 0) + 1
+        additionalState["operationCount"] = count
+        return "Refined behavior executed \(count) times"
+    }
+    
+    // Additional refined methods
+    func getAdditionalState() -> [String: Any] {
+        return additionalState
+    }
+    
+    func refinedSpecificOperation() -> String {
+        let implResult = implementation.operationImpl()
+        return "{{ refined_abstraction_name }}: Enhanced \(implResult)"
+    }
+}
+
+// Alternative Refined Abstraction
+class Alternative{{ refined_abstraction_name }}: {{ abstraction_name }} {
+    {% if features.get("Constructor Injection") %}
+    override init(implementation: {{ implementation_name }}) {
+        super.init(implementation: implementation)
+    }
+    {% elif features.get("Property Setting") %}
+    override init(implementation: {{ implementation_name }}) {
+        super.init(implementation: implementation)
+    }
+    {% elif features.get("Factory Creation") %}
+    override init(implementationType: String) {
+        super.init(implementationType: implementationType)
+    }
+    {% endif %}
+    
+    override func operation() -> String {
+        let baseResult = super.operation()
+        return "Alternative: \(baseResult) with different refinement"
+    }
+    
+    func alternativeMethod() -> String {
+        return "Alternative{{ refined_abstraction_name }}: Alternative behavior using \(implementation.name)"
+    }
+}
+
+{% elif features.get("Protocol Based") %}
+struct {{ refined_abstraction_name }}: {{ abstraction_name }} {
+    {% if features.get("Implementation Switching") %}
+    var implementation: {{ implementation_name }}
+    {% else %}
+    let implementation: {{ implementation_name }}
+    {% endif %}
+    private var refinedState: [String: Any] = [:]
+    
+    init(implementation: {{ implementation_name }}) {
+        {% if features.get("Bridge Validation") %}
+        guard implementation.validate() else {
+            fatalError("Invalid implementation provided")
+        }
+        {% endif %}
+        self.implementation = implementation
+        self.refinedState["created"] = Date()
+    }
+    
+    func operation() -> String {
+        let baseResult = implementation.operationImpl()
+        let refinedBehavior = "Refined struct behavior"
+        return "{{ refined_abstraction_name }}: \(baseResult) + \(refinedBehavior)"
+    }
+    
+    func getRefinedState() -> [String: Any] {
+        return refinedState
+    }
+}
+{% endif %}
+
+{% if features.get("Implementation Caching") %}
+// MARK: - Bridge Factory with Caching
+class BridgeFactory {
+    private static var cache: [String: {{ implementation_name }}] = [:]
+    
+    static func createBridge(abstractionType: String, implementationType: String) -> {{ abstraction_name }}? {
+        let implementation = getOrCreateImplementation(type: implementationType)
+        
+        switch abstractionType.lowercased() {
+        case "refined", "{{ refined_abstraction_name.lower() }}":
+            {% if features.get("Abstract Class") %}
+            return {{ refined_abstraction_name }}(implementation: implementation)
+            {% else %}
+            return {{ refined_abstraction_name }}(implementation: implementation)
+            {% endif %}
+        case "alternative":
+            {% if features.get("Abstract Class") %}
+            return Alternative{{ refined_abstraction_name }}(implementation: implementation)
+            {% endif %}
+        default:
+            {% if features.get("Abstract Class") %}
+            return {{ abstraction_name }}(implementation: implementation)
+            {% endif %}
+        }
+        
+        {% if features.get("Protocol Based") %}
+        return nil
+        {% endif %}
+    }
+    
+    private static func getOrCreateImplementation(type: String) -> {{ implementation_name }} {
+        if let cached = cache[type] {
+            print("BridgeFactory: Using cached implementation \(type)")
+            return cached
+        }
+        
+        let implementation: {{ implementation_name }}
+        switch type.lowercased() {
+        {% for i in range(1, num_implementations + 1) %}
+        case "impl{{ i }}", "implementation{{ i }}":
+            implementation = ConcreteImplementation{{ i }}()
+        {% endfor %}
+        default:
+            implementation = ConcreteImplementation1()
+        }
+        
+        cache[type] = implementation
+        print("BridgeFactory: Created and cached implementation \(type)")
+        return implementation
+    }
+}
+{% endif %}
+
+// MARK: - Usage Examples
+
+/*
+// Usage example based on JSON configuration:
+
+{% if features.get("Constructor Injection") %}
+// Constructor injection
+let device1 = ConcreteImplementation1()
+let device2 = ConcreteImplementation2()
+
+let remote1 = {{ abstraction_name }}(implementation: device1)
+let advancedRemote = {{ refined_abstraction_name }}(implementation: device2)
+
+print("Basic remote: \(remote1.operation())")
+print("Advanced remote: \(advancedRemote.operation())")
+
+{% elif features.get("Property Setting") %}
+// Property setting approach
+{% if features.get("Lazy Implementation") %}
+let remote = {{ abstraction_name }}()
+remote.implementation = ConcreteImplementation1()
+{% else %}
+let remote = {{ abstraction_name }}(implementation: ConcreteImplementation1())
+{% endif %}
+
+print("Initial operation: \(remote.operation())")
+
+{% if features.get("Implementation Switching") %}
+// Switch implementation at runtime
+let newDevice = ConcreteImplementation2()
+remote.switchImplementation(to: newDevice)
+print("After switching device: \(remote.operation())")
+
+// Verify current implementation
+print("Current device: \(remote.getCurrentImplementation().name)")
+{% endif %}
+
+{% elif features.get("Factory Creation") %}
+// Factory creation approach
+let factoryRemote = {{ abstraction_name }}(implementationType: "impl2")
+print("Factory created remote: \(factoryRemote.operation())")
+{% endif %}
+
+{% if features.get("Multiple Implementations") %}
+// Multiple implementations with complex operations
+let complexRemote = {{ refined_abstraction_name }}(implementation: ConcreteImplementation3())
+let complexResult = complexRemote.complexOperation(with: "HD Video")
+print("Complex operation: \(complexResult)")
+
+// Show capabilities
+let capabilities = ConcreteImplementation1().getCapabilities()
+print("Device capabilities: \(capabilities)")
+{% endif %}
+
+{% if features.get("Bridge Validation") %}
+// Bridge validation example
+let validDevice = ConcreteImplementation1()
+if validDevice.validate() {
+    let validatedRemote = {{ abstraction_name }}(implementation: validDevice)
+    print("Validated remote created: \(validatedRemote.operation())")
+}
+{% endif %}
+
+{% if features.get("Implementation Caching") %}
+// Using cached factory
+if let cachedRemote = BridgeFactory.createBridge(abstractionType: "refined", implementationType: "impl1") {
+    print("Cached bridge remote: \(cachedRemote.operation())")
+}
+
+// Check cache usage
+let cachedDevice = {{ abstraction_name }}.getCachedImplementation(type: "ConcreteImplementation1")
+if let device = cachedDevice {
+    print("Found cached device: \(device.name)")
+}
+{% endif %}
+
+{% if features.get("Abstract Class") %}
+// Refined abstraction specific methods
+let refinedRemote = {{ refined_abstraction_name }}(implementation: ConcreteImplementation2())
+let refinedResult = refinedRemote.refinedSpecificOperation()
+print("Refined specific: \(refinedResult)")
+
+let state = refinedRemote.getAdditionalState()
+print("Refined state: \(state)")
+
+// Alternative refined abstraction
+let altRemote = Alternative{{ refined_abstraction_name }}(implementation: ConcreteImplementation3())
+let altResult = altRemote.alternativeMethod()
+print("Alternative method: \(altResult)")
+{% endif %}
+*/
