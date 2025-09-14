@@ -10,23 +10,23 @@ from flamapy.metamodels.fm_metamodel.transformations import UVLReader
 #from flamapy.metamodels.fm_metamodel.operations import FMEstimatedProductsNumber
 
 base_dir = pathlib.Path(__file__).parent
+#Available categories:
+# behavioral: strategy, observer.
+# creational: factory_method, singleton.
+# structural: adapter,  bridge, decorator.
 
-#C:\usj\tfm_tools\patterns\behavioral\strategy\configurations\strategy.json
-general_group = "behavioral" # behavioral | creational | structural
-pattern = "observer" # singleton | strategy | adapter | factory_method| decorator | bridge | observer
+#Change these variables to generate different patterns:
+general_group = "creational"
+pattern = "singleton"
+
+config_name = "{}.json".format(pattern)
+template_name = "{}.swift.j2".format(pattern)
+
 configuration_path = "configurations"
 template_path = "templates"
 
 template_dir = base_dir / "patterns" / general_group / pattern / template_path
-json_configuration_dir =  base_dir / "patterns" / general_group / pattern / configuration_path  # base_dir / "patterns/creational/singleton/configurations"
-
-config_name = "observer.json"
-template_name = "observer.swift.j2"
-
-
-#print(base_dir)
-#print(template_dir)
-#print(json_configuration_dir)
+json_configuration_dir =  base_dir / "patterns" / general_group / pattern / configuration_path
 
 configuration = json_configuration_dir / config_name
 
@@ -35,41 +35,14 @@ configuration = json_configuration_dir / config_name
 #features_dict = configuration_to_dict(config, fm)
 
 json_config = json.loads(configuration.read_text(encoding="utf-8"))
-#print(json_config)
-#print(template_name)
-#print(json_configuration_dir / config_name)
-
-'''
-"""
-features = {
-    "Class Name": "ConfigManager", 
-    "Initialization": "Lazy",
-    "Access Method": "getInstance()",
-    "Thread Safety": True
-}
-"""
-
-features = {
-    "Context Class Name": "PaymentProcessor",
-    "Strategy Interface Name": "PaymentStrategy", 
-    "Strategy Interface": "Interface",
-    "Strategy Selection": "Factory Method",
-    "Number of Strategies": 3,
-    "Strategy Caching": True,
-    "Default Strategy": True
-}
-'''
 
 context = {
 "features": json_config
 }
 
-pattern_generator.generate(context,template_name,template_dir,"hol")
+pattern_generator.generate(context,template_name,template_dir,"")
 
 
 def load_feature_model(uvl_file_path):
-    """Carga un feature model desde un archivo UVL"""
     fm = UVLReader(uvl_file_path).transform()
     return fm
-
-#
