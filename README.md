@@ -121,6 +121,25 @@ UVL2Pat/
 
 3. **Find your generated Swift code** in the output directory.
 
+4. ### Pattern Generation Examples
+
+```python
+# Generate Singleton Pattern
+general_group = "creational"
+pattern = "singleton"
+# Uses: singleton.json, singleton.swift.j2, singleton.uvl
+
+# Generate Observer Pattern
+general_group = "behavioral"
+pattern = "observer"
+# Uses: observer.json, observer.swift.j2, observer.uvl
+
+# Generate Decorator Pattern
+general_group = "structural"
+pattern = "decorator"
+# Uses: decorator.json, decorator.swift.j2, decorator.uvl
+```
+
 ## 📝 Available Patterns
 
 ### 🎭 Behavioral Patterns
