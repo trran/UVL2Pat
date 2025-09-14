@@ -301,10 +301,9 @@ class {{ class_name }} {
 }
 ```
 ### Generated Swift Code
-import Foundation
-import Dispatch
-
-class singleton {
+    import Foundation
+    import Dispatch
+    class singleton {
     private static var _instance: singleton?
     private static let queue = DispatchQueue(label: "singleton.queue")
     
