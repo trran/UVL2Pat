@@ -103,80 +103,23 @@ UVL2Pat/
 
 ## 🎯 Quick Start
 
-> **Generate your first pattern in 3 steps!**
+1. **Choose your pattern** by modifying the variables in `main.py`:
+   ```python
+   # Available categories and patterns:
+   # behavioral: strategy, observer
+   # creational: factory_method, singleton
+   # structural: adapter, bridge, decorator
 
-### Python Script Usage
+   general_group = "creational"    # Change category
+   pattern = "singleton"           # Change pattern
+   ```
 
-```python
-import pathlib, json
-from jinja2 import Environment, FileSystemLoader
-import random
-import pattern_generator
-from flamapy.metamodels.fm_metamodel.transformations import UVLReader
+2. **Run the generator:**
+   ```bash
+   python main.py
+   ```
 
-base_dir = pathlib.Path(__file__).parent
-
-# Available patterns by category:
-# behavioral: strategy, observer
-# creational: factory_method, singleton
-# structural: adapter, bridge, decorator
-
-# Configure pattern to generate
-general_group = "creational"
-pattern = "singleton"
-
-# Setup paths
-config_name = f"{pattern}.json"
-template_name = f"{pattern}.swift.j2"
-configuration_path = "configurations"
-template_path = "templates"
-
-template_dir = base_dir / "patterns" / general_group / pattern / template_path
-json_configuration_dir = base_dir / "patterns" / general_group / pattern / configuration_path
-configuration = json_configuration_dir / config_name
-
-# Load configuration and generate
-json_config = json.loads(configuration.read_text(encoding="utf-8"))
-context = {
-    "features": json_config
-}
-
-# Generate Swift code
-pattern_generator.generate(context, template_name, template_dir, "")
-```
-
-### UVL Feature Model Integration
-
-```python
-def load_feature_model(uvl_file_path):
-    """Load UVL feature model for advanced pattern generation"""
-    fm = UVLReader(uvl_file_path).transform()
-    return fm
-
-# Example: Load and use UVL model
-# fm = load_feature_model("patterns/creational/singleton/singleton.uvl")
-# config = get_random_configuration(fm)
-# features_dict = configuration_to_dict(config, fm)
-```
-
-### Pattern Generation Examples
-
-```python
-# Generate Singleton Pattern
-general_group = "creational"
-pattern = "singleton"
-# Uses: singleton.json, singleton.swift.j2, singleton.uvl
-
-# Generate Observer Pattern
-general_group = "behavioral"
-pattern = "observer"
-# Uses: observer.json, observer.swift.j2, observer.uvl
-
-# Generate Decorator Pattern
-general_group = "structural"
-pattern = "decorator"
-# Uses: decorator.json, decorator.swift.j2, decorator.uvl
-```
+3. **Find your generated Swift code** in the output directory.
 
 ## 📝 Available Patterns
 
@@ -200,7 +143,9 @@ pattern = "decorator"
 
 ## ⚙️ Configuration System
 
-### UVL Model Example (singleton.uvl)
+### UVL Model
+
+**Singleton Feature Model (singleton.uvl):**
 ```uvl
 features
     "Singleton Pattern" {abstract}
@@ -226,7 +171,9 @@ constraints
     "Serialization Support" => "Thread Safety"
 ```
 
-### JSON Configuration (singleton_threadsafe.json)
+### JSON Configuration
+
+**Configuration (singleton_threadsafe.json):**
 ```json
 {
   "Eager": false,
@@ -243,7 +190,9 @@ constraints
 }
 ```
 
-### Swift Template (singleton.swift.j2)
+### Swift Template
+
+**Swift Template (singleton.swift.j2):**
 ```swift
 {% set class_name = features.get("Class Name", "Singleton") %}
 {% if features.get("Namespace") %}// Namespace: {{ features.get("Namespace") }}{% endif %}
@@ -271,6 +220,7 @@ class {{ class_name }} {
 ```
 
 ### Generated Swift Code
+
 ```swift
 // Namespace: com.example.data
 import Foundation
@@ -293,82 +243,6 @@ class DatabaseManager {
         }
     }
 }
-```
-
-## 🔧 Advanced Usage
-
-### Pattern Variants Generation
-
-```python
-# Generate different singleton variants
-configurations = ["singleton_eager.json", "singleton_lazy.json", "singleton_threadsafe.json"]
-
-for config_file in configurations:
-    configuration = json_configuration_dir / config_file
-    json_config = json.loads(configuration.read_text(encoding="utf-8"))
-    context = {"features": json_config}
-    
-    # Generate with specific configuration
-    output_file = f"Singleton_{config_file.replace('.json', '.swift')}"
-    pattern_generator.generate(context, template_name, template_dir, output_file)
-```
-
-### Custom Template Directory
-
-```python
-# Use custom template location
-custom_template_dir = base_dir / "custom_templates" / "singleton"
-
-# Generate with custom template
-pattern_generator.generate(context, template_name, custom_template_dir, "CustomSingleton.swift")
-```
-
-### Batch Pattern Generation
-
-```python
-# Generate multiple patterns
-patterns_to_generate = [
-    ("creational", "singleton"),
-    ("behavioral", "observer"),
-    ("structural", "decorator")
-]
-
-for group, pattern_name in patterns_to_generate:
-    # Setup paths for each pattern
-    template_dir = base_dir / "patterns" / group / pattern_name / "templates"
-    config_dir = base_dir / "patterns" / group / pattern_name / "configurations"
-    
-    # Load configuration
-    config_file = config_dir / f"{pattern_name}.json"
-    json_config = json.loads(config_file.read_text(encoding="utf-8"))
-    
-    # Generate Swift code
-    context = {"features": json_config}
-    template_name = f"{pattern_name}.swift.j2"
-    pattern_generator.generate(context, template_name, template_dir, f"{pattern_name.title()}.swift")
-```
-
-### UVL Feature Model Validation
-
-```python
-from flamapy.metamodels.fm_metamodel.transformations import UVLReader
-
-def validate_configuration(uvl_path, config_dict):
-    """Validate configuration against UVL constraints"""
-    fm = UVLReader(uvl_path).transform()
-    
-    # Add validation logic here
-    # This would check if the configuration satisfies UVL constraints
-    return True  # Simplified for example
-
-# Example usage
-uvl_file = base_dir / "patterns" / general_group / pattern / f"{pattern}.uvl"
-is_valid = validate_configuration(uvl_file, json_config)
-
-if is_valid:
-    pattern_generator.generate(context, template_name, template_dir, "")
-else:
-    print("Configuration violates UVL constraints")
 ```
 
 ## 📊 Feature Analysis
@@ -416,87 +290,6 @@ else:
 2. Create feature branch: `git checkout -b feature/new-pattern`
 3. Implement Swift patterns with tests
 4. Submit pull request with comprehensive documentation
-
-## 🐛 Troubleshooting
-
-### Common Issues and Solutions:
-- **Swift Template Error**: Check Jinja2 syntax and Swift-specific constructs
-- **UVL Parse Error**: Validate UVL syntax using FlamaPy tools
-- **Constraint Violation**: Review configuration against UVL constraints
-- **Generation Failed**: Verify template variables match JSON configuration
-- **Swift Compilation Error**: Check generated Swift code syntax and imports
-- **iOS Framework Issues**: Ensure proper Foundation/UIKit imports in templates
-
-### Debug Mode
-```python
-# Enable verbose output
-uvl2pat generate --pattern singleton --verbose
-
-# Show template variables and Swift output
-uvl2pat debug --pattern observer --config typed
-
-# Validate Swift syntax
-uvl2pat validate-swift --file ./output/Singleton.swift
-```
-
-## 📚 API Reference
-
-### Core Functions
-```python
-import pattern_generator
-from flamapy.metamodels.fm_metamodel.transformations import UVLReader
-
-# Main generation function
-pattern_generator.generate(
-    context={"features": json_config},
-    template_name="singleton.swift.j2",
-    template_dir=template_directory,
-    output_file=""  # Empty string for default output
-)
-
-# UVL model loading
-def load_feature_model(uvl_file_path):
-    fm = UVLReader(uvl_file_path).transform()
-    return fm
-```
-
-### Pattern Configuration
-```python
-# Available pattern categories and their patterns
-AVAILABLE_PATTERNS = {
-    "behavioral": ["strategy", "observer"],
-    "creational": ["factory_method", "singleton"], 
-    "structural": ["adapter", "bridge", "decorator"]
-}
-
-# Path structure for patterns
-def get_pattern_paths(base_dir, general_group, pattern):
-    template_dir = base_dir / "patterns" / general_group / pattern / "templates"
-    config_dir = base_dir / "patterns" / general_group / pattern / "configurations"
-    uvl_file = base_dir / "patterns" / general_group / pattern / f"{pattern}.uvl"
-    
-    return template_dir, config_dir, uvl_file
-```
-
-### Configuration Loading
-```python
-# Load JSON configuration
-def load_configuration(config_path):
-    return json.loads(config_path.read_text(encoding="utf-8"))
-
-# Create template context
-def create_context(json_config):
-    return {"features": json_config}
-
-# Complete example
-json_config = load_configuration(configuration_file)
-context = create_context(json_config)
-pattern_generator.generate(context, template_name, template_dir, output_file)
-```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙋‍♂️ Support & Community
 
