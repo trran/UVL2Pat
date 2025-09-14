@@ -177,17 +177,13 @@ features
                 alternative
                     "getInstance()"
                     "Static Field"
-                    "Property"
         optional
             "Thread Safety"
-            "Serialization Support"
             String "Class Name"
-            String "Namespace"
 
 constraints
     "Eager" => !"Thread Safety"
     "Static Field" => "Eager"
-    "Serialization Support" => "Thread Safety"
 ```
 
 ### JSON Configuration
@@ -200,12 +196,9 @@ constraints
   "Initialization": true,
   "Access Method": true,
   "Thread Safety": true,
-  "Serialization Support": false,
-  "Class Name": "DatabaseManager",
-  "Namespace": "com.example.data",
+  "Class Name": "singleton",
   "getInstance()": true,
-  "Static Field": false,
-  "Property": false
+  "Static Field": false
 }
 ```
 
@@ -213,8 +206,8 @@ constraints
 
 **Swift Template (singleton.swift.j2):**
 ```swift
+{# singleton.swift.j2 #}
 {% set class_name = features.get("Class Name", "Singleton") %}
-{% if features.get("Namespace") %}// Namespace: {{ features.get("Namespace") }}{% endif %}
 import Foundation
 {% if features.get("Thread Safety") and features.get("Lazy") %}
 import Dispatch
@@ -233,33 +226,115 @@ class {{ class_name }} {
     {% endif %}
     
     private init() {
-        // Private initializer
-    }
-}
-```
-
-### Generated Swift Code
-
-```swift
-// Namespace: com.example.data
-import Foundation
-import Dispatch
-
-class DatabaseManager {
-    private static var _instance: DatabaseManager?
-    private static let queue = DispatchQueue(label: "databasemanager.queue")
-    
-    private init() {
-        // Private initializer
+        // Private initializer to prevent external instantiation
+        print("{{ class_name }} initialized")
     }
     
-    static func getInstance() -> DatabaseManager {
+    {% if features.get("Access Method") %}
+    {% if features.get("getInstance()") %}
+    {% if features.get("Eager") %}
+    static func getInstance() -> {{ class_name }} {
+        return shared
+    }
+    {% elif features.get("Lazy") %}
+    {% if features.get("Thread Safety") %}
+    static func getInstance() -> {{ class_name }} {
         return queue.sync {
             if _instance == nil {
-                _instance = DatabaseManager()
+                _instance = {{ class_name }}()
             }
             return _instance!
         }
+    }
+    {% else %}
+    static func getInstance() -> {{ class_name }} {
+        if _instance == nil {
+            _instance = {{ class_name }}()
+        }
+        return _instance!
+    }
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    
+    {% if features.get("Static Field") %}
+    {% if features.get("Eager") %}
+    static var instance: {{ class_name }} {
+        return shared
+    }
+    {% elif features.get("Lazy") %}
+    {% if features.get("Thread Safety") %}
+    static var instance: {{ class_name }} {
+        return queue.sync {
+            if _instance == nil {
+                _instance = {{ class_name }}()
+            }
+            return _instance!
+        }
+    }
+    {% else %}
+    static var instance: {{ class_name }} {
+        if _instance == nil {
+            _instance = {{ class_name }}()
+        }
+        return _instance!
+    }
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    
+    // MARK: - Public Methods
+    
+    func doSomething() {
+        print("{{ class_name }} is doing something...")
+    }
+    
+    func performTask(with data: String) -> String {
+        print("{{ class_name }} performing task with: \(data)")
+        return "Task completed by {{ class_name }}"
+    }
+    
+    func getStatus() -> String {
+        return "{{ class_name }} is active and ready"
+    }
+}
+```
+### Generated Swift Code
+import Foundation
+import Dispatch
+
+class singleton {
+    private static var _instance: singleton?
+    private static let queue = DispatchQueue(label: "singleton.queue")
+    
+    private init() {
+        // Private initializer to prevent external instantiation
+        print("singleton initialized")
+    }
+
+    static func getInstance() -> singleton {
+        return queue.sync {
+            if _instance == nil {
+                _instance = singleton()
+            }
+            return _instance!
+        }
+    }
+
+    // MARK: - Public Methods
+
+    func doSomething() {
+        print("singleton is doing something...")
+    }
+
+    func performTask(with data: String) -> String {
+        print("singleton performing task with: \(data)")
+        return "Task completed by singleton"
+    }
+
+    func getStatus() -> String {
+        return "singleton is active and ready"
     }
 }
 ```
