@@ -50,25 +50,30 @@ UVL2Pat/
 ├── patterns/
 │   ├── behavioral/
 │   │   ├── strategy/
-│   │   │   ├── strategy.uvl
+|   |   |   ├── feature_model
+│   │   │   |   └── strategy.uvl
 │   │   │   ├── templates/
 │   │   │   │   └── strategy.swift.j2
 │   │   │   └── configurations/
 │   │   │       └── strategy.json
 │   │   └── observer/
-│   │       ├── observer.uvl
+|   |       ├── feature_model
+│   │       |   └── observer.uvl
 │   │       ├── templates/
 │   │       │   └── observer.swift.j2
 │   │       └── configurations/
 │   │           └── observer.json
 │   ├── creational/
 │   │   ├── factory_method/
-│   │   │   ├── factory_method.uvl
+│   │   │   ├── feature_model
+|   |   |   |    └── factory_method.uvl
 │   │   │   ├── templates/
 │   │   │   │   └── factory_method.swift.j2
 │   │   │   └── configurations/
+|   |   |       └── factory_method.json
 │   │   └── singleton/
-│   │       ├── singleton.uvl
+│   │       ├── feature_model
+│   │       |   └── singleton.uvl
 │   │       ├── templates/
 │   │       │   └── singleton.swift.j2
 │   │       └── configurations/
@@ -77,10 +82,6 @@ UVL2Pat/
 │       ├── adapter/
 │       ├── bridge/
 │       └── decorator/
-├── src/
-├── tests/
-├── requirements.txt
-└── README.md
 ```
 
 ## 🛠️ Installation
