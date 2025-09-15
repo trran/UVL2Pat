@@ -357,6 +357,4 @@ class {{ class_name }} {
 
 > **Validation Process:** UVL2Pat automatically validates configurations against UVL constraints before code generation, ensuring only valid pattern variants are created.
 
-<div align="center">
-
 *Transforming Feature Models into Code, One Pattern at a Time*
