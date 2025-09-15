@@ -360,5 +360,3 @@ class {{ class_name }} {
 <div align="center">
 
 *Transforming Feature Models into Code, One Pattern at a Time*
-
-</div>
