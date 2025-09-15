@@ -357,45 +357,7 @@ class {{ class_name }} {
 
 > **Validation Process:** UVL2Pat automatically validates configurations against UVL constraints before code generation, ensuring only valid pattern variants are created.
 
-## 🤝 Contributing
-
-### Adding New Patterns (Swift)
-1. Create UVL feature model: `patterns/{category}/{pattern}/{pattern}.uvl`
-2. Create Swift template: `patterns/{category}/{pattern}/templates/{pattern}.swift.j2`
-3. Add configuration examples: `patterns/{category}/{pattern}/configurations/`
-4. Write comprehensive tests for Swift implementation
-5. Update documentation
-
-### Preparing for Multi-Language Support
-1. Design language-agnostic UVL models
-2. Create template structure for future languages
-3. Implement language detection and routing
-4. Design extensible architecture for new language support
-
-### Swift-Specific Contributions
-- **iOS Optimizations**: Memory management, lifecycle patterns
-- **SwiftUI Integration**: ObservableObject, StateObject patterns
-- **Combine Framework**: Publisher/Subscriber implementations
-- **Concurrency**: async/await pattern variations
-
-### Development Process:
-1. Fork the repository: `https://github.com/trran/UVL2Pat`
-2. Create feature branch: `git checkout -b feature/new-pattern`
-3. Implement Swift patterns with tests
-4. Submit pull request with comprehensive documentation
-
-## 🙋‍♂️ Support & Community
-
-- **Issues**: Report bugs and request features on [GitHub Issues](https://github.com/trran/UVL2Pat/issues)
-- **Discussions**: Join community discussions on [GitHub Discussions](https://github.com/trran/UVL2Pat/discussions)
-- **Documentation**: Full documentation at [uvl2pat.readthedocs.io](https://uvl2pat.readthedocs.io)
-- **Examples**: More Swift examples in the [examples/](https://github.com/trran/UVL2Pat/tree/main/examples) directory
-
----
-
 <div align="center">
-
-**🌟 Made with ❤️ for the Software Engineering Research Community 🌟**
 
 *Transforming Feature Models into Code, One Pattern at a Time*
 
