@@ -3,8 +3,9 @@
 **Universal Design Patterns Generator - From UVL Feature Models to Swift Code**
 
 Transform Universal Variability Language models into Swift design pattern implementations with future multi-language support
-Visit:https://trran.github.io/UVL2Pat/
 ---
+
+Visit: https://trran.github.io/UVL2Pat/
 
 ## 📊 Project Stats
 
