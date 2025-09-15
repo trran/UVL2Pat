@@ -334,8 +334,8 @@ class {{ class_name }} {
 
     func getStatus() -> String {
         return "singleton is active and ready"
+     }
     }
-}
 ```
 
 ## 📊 Feature Analysis
