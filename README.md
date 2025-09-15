@@ -47,41 +47,41 @@ pip install jinja2 flamapy-fm pathlib click
 
 ```
 UVL2Pat/
-├── patterns/
-│   ├── behavioral/
-│   │   ├── strategy/
-|   |   |   ├── feature_model
-│   │   │   |   └── strategy.uvl
-│   │   │   ├── templates/
-│   │   │   │   └── strategy.swift.j2
-│   │   │   └── configurations/
-│   │   │       └── strategy.json
-│   │   └── observer/
-|   |       ├── feature_model
-│   │       |   └── observer.uvl
-│   │       ├── templates/
-│   │       │   └── observer.swift.j2
-│   │       └── configurations/
-│   │           └── observer.json
-│   ├── creational/
-│   │   ├── factory_method/
-│   │   │   ├── feature_model
-|   |   |   |    └── factory_method.uvl
-│   │   │   ├── templates/
-│   │   │   │   └── factory_method.swift.j2
-│   │   │   └── configurations/
-|   |   |       └── factory_method.json
-│   │   └── singleton/
-│   │       ├── feature_model
-│   │       |   └── singleton.uvl
-│   │       ├── templates/
-│   │       │   └── singleton.swift.j2
-│   │       └── configurations/
-│   │           └── singleton.json
-│   └── structural/
-│       ├── adapter/
-│       ├── bridge/
-│       └── decorator/
+└── patterns/
+	├── behavioral/
+	│   ├── strategy/
+	|   |   ├── feature_model
+	│   │   |   └── strategy.uvl
+	│   │   ├── templates/
+	│   │   │   └── strategy.swift.j2
+	│   │   └── configurations/
+	│   │       └── strategy.json
+	│   └── observer/
+	|       ├── feature_model
+	│       |   └── observer.uvl
+	│       ├── templates/
+	│       │   └── observer.swift.j2
+	│       └── configurations/
+	│           └── observer.json
+	├── creational/
+	│   ├── factory_method/
+	│   │   ├── feature_model
+	|   |   |    └── factory_method.uvl
+	│   │   ├── templates/
+	│   │   │   └── factory_method.swift.j2
+	│   │   └── configurations/
+	|   |       └── factory_method.json
+	│   └── singleton/
+	│       ├── feature_model
+	│       |   └── singleton.uvl
+	│       ├── templates/
+	│       │   └── singleton.swift.j2
+	│       └── configurations/
+	│           └── singleton.json
+	└── structural/
+		├── adapter/
+		├── bridge/
+		└── decorator/
 ```
 
 ## 🛠️ Installation
